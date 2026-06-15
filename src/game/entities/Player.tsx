@@ -9,6 +9,7 @@ import {
 } from "@react-three/rapier";
 import { useEngine } from "@/game/core/engineContext";
 import { PlayerController } from "@/game/entities/playerController";
+import { CameraMode, usePlayerStore } from "@/game/state/playerStore";
 
 const RADIUS = 0.34;
 const HALF_HEIGHT = 0.51; // cylinder half-height → ~1.7m total standing capsule
@@ -22,6 +23,8 @@ export function Player() {
   const engine = useEngine();
   const { world } = useRapier();
   const bodyRef = useRef<RapierRigidBody>(null);
+  // Placeholder body — visible only in third person (real rig lands in Step 6).
+  const showBody = usePlayerStore((s) => s.cameraMode) === CameraMode.ThirdPerson;
 
   useEffect(() => {
     const body = bodyRef.current;
@@ -41,6 +44,10 @@ export function Player() {
       enabledRotations={[false, false, false]}
     >
       <CapsuleCollider args={[HALF_HEIGHT, RADIUS]} />
+      <mesh visible={showBody} castShadow>
+        <capsuleGeometry args={[RADIUS, HALF_HEIGHT * 2, 8, 16]} />
+        <meshStandardMaterial color="#3a6ea5" roughness={0.6} metalness={0.1} />
+      </mesh>
     </RigidBody>
   );
 }

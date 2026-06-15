@@ -8,7 +8,7 @@ import type {
 import type { GameContext, GameModule } from "@/game/core/types";
 import { SystemOrder } from "@/game/core/types";
 import { input } from "@/game/systems/input";
-import { playerRuntime } from "@/game/state/runtime";
+import { playerRuntime, playerPhysics } from "@/game/state/runtime";
 import { Stance, usePlayerStore } from "@/game/state/playerStore";
 
 // Movement tuning (m/s, m/s²-ish smoothing factors).
@@ -58,6 +58,9 @@ export class PlayerController implements GameModule {
     c.setMinSlopeSlideAngle(THREE.MathUtils.degToRad(40));
     c.setApplyImpulsesToDynamicBodies(true);
     this.controller = c;
+
+    playerPhysics.body = this.body;
+    playerPhysics.collider = this.collider;
 
     const t = this.body.translation();
     playerRuntime.position.set(t.x, t.y, t.z);
@@ -133,5 +136,7 @@ export class PlayerController implements GameModule {
       this.world.removeCharacterController(this.controller);
       this.controller = null;
     }
+    playerPhysics.body = null;
+    playerPhysics.collider = null;
   }
 }

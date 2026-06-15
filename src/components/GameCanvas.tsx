@@ -74,7 +74,7 @@ export function GameCanvas() {
   return (
     <>
       <Canvas
-        shadows
+        shadows={{ type: THREE.PCFShadowMap }}
         dpr={[1, 2]}
         gl={{ antialias: true, powerPreference: "high-performance" }}
         camera={{ position: [9, 6, 11], fov: 60, near: 0.1, far: 200 }}

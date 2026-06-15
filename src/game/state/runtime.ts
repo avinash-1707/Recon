@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import type { Collider, RigidBody } from "@dimforge/rapier3d-compat";
 
 /**
  * Transient, per-frame game state — mutated directly in the loop, NEVER through
@@ -37,3 +38,15 @@ export const playerRuntime: PlayerRuntime = {
   crouching: false,
   sprinting: false,
 };
+
+/**
+ * Live Rapier handles for the player, published by PlayerController. Lets other
+ * systems (e.g. the TP camera ray) reference/exclude the player body without
+ * routing through React.
+ */
+export interface PlayerPhysics {
+  body: RigidBody | null;
+  collider: Collider | null;
+}
+
+export const playerPhysics: PlayerPhysics = { body: null, collider: null };
