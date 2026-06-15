@@ -4,76 +4,64 @@ import { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import {
   OrbitControls,
-  RoundedBox,
   ContactShadows,
   AdaptiveDpr,
   Preload,
+  Stats,
   useProgress,
 } from "@react-three/drei";
+import { Physics } from "@react-three/rapier";
 import * as THREE from "three";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { DevControls } from "@/components/DevControls";
+import { EngineProvider, EngineRunner } from "@/game/core/engineContext";
+import { useWorldStore } from "@/game/state/worldStore";
+import SandboxLevel from "@/game/levels/SandboxLevel";
 
-/**
- * Scaffold scene — proves R3F + drei + lighting + shadows render.
- * Real world (ground collider, buildings, cover) lands in the level phase;
- * this is just a beveled placeholder so the canvas is visibly alive.
- */
-function PlaceholderScene() {
+function Lights() {
   return (
-    <group>
+    <>
       <hemisphereLight args={["#9fc4d6", "#1a232b", 0.5]} />
       <ambientLight intensity={0.25} />
       <directionalLight
-        position={[8, 14, 6]}
+        position={[10, 16, 8]}
         intensity={2.2}
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-camera-near={1}
-        shadow-camera-far={40}
-        shadow-camera-left={-20}
-        shadow-camera-right={20}
-        shadow-camera-top={20}
-        shadow-camera-bottom={-20}
+        shadow-camera-far={50}
+        shadow-camera-left={-24}
+        shadow-camera-right={24}
+        shadow-camera-top={24}
+        shadow-camera-bottom={-24}
+        shadow-bias={-0.0004}
       />
-      <pointLight position={[-4, 3, -3]} intensity={12} color="#4cc9f0" distance={14} />
+      <pointLight position={[-6, 4, -4]} intensity={14} color="#4cc9f0" distance={18} />
+    </>
+  );
+}
 
-      {/* placeholder structures — beveled, not flat boxes */}
-      {[
-        [0, 1, 0],
-        [3.5, 0.75, -2],
-        [-3, 1.4, -1.5],
-      ].map(([x, y, z], i) => (
-        <RoundedBox
-          key={i}
-          args={[1.8, y * 2, 1.8]}
-          radius={0.08}
-          smoothness={4}
-          position={[x, y, z]}
-          castShadow
-          receiveShadow
-        >
-          <meshStandardMaterial
-            color={i === 0 ? "#39424b" : "#2b333b"}
-            roughness={0.7}
-            metalness={0.15}
-          />
-        </RoundedBox>
-      ))}
-
-      {/* visual ground (no physics yet) */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[60, 60]} />
-        <meshStandardMaterial color="#161b20" roughness={0.95} metalness={0.05} />
-      </mesh>
-
-      <ContactShadows
-        position={[0, 0.01, 0]}
-        opacity={0.5}
-        scale={30}
-        blur={2.4}
-        far={10}
-      />
-    </group>
+/**
+ * Physics world + engine runner. <Physics> owns the fixed stepper (timeStep)
+ * and render interpolation; `updatePriority={-50}` steps physics before the
+ * engine's useFrame so we read fresh interpolated transforms. `paused`/`debug`
+ * are reactive config (toggled rarely) — fine to read with a selector here.
+ */
+function World() {
+  const paused = useWorldStore((s) => s.paused);
+  const debug = useWorldStore((s) => s.debugPhysics);
+  return (
+    <Physics
+      timeStep={1 / 60}
+      interpolate
+      paused={paused}
+      debug={debug}
+      gravity={[0, -9.81, 0]}
+      updatePriority={-50}
+    >
+      <EngineRunner />
+      <SandboxLevel />
+    </Physics>
   );
 }
 
@@ -91,20 +79,26 @@ export function GameCanvas() {
         shadows
         dpr={[1, 2]}
         gl={{ antialias: true, powerPreference: "high-performance" }}
-        camera={{ position: [6, 5, 8], fov: 60, near: 0.1, far: 200 }}
+        camera={{ position: [9, 6, 11], fov: 60, near: 0.1, far: 200 }}
         onCreated={({ scene }) => {
           scene.background = new THREE.Color("#0a0f14");
-          scene.fog = new THREE.Fog("#0a0f14", 18, 60);
+          scene.fog = new THREE.Fog("#0a0f14", 22, 70);
         }}
       >
         <Suspense fallback={null}>
-          <PlaceholderScene />
+          <Lights />
+          <EngineProvider>
+            <World />
+          </EngineProvider>
+          <ContactShadows position={[0, 0.01, 0]} opacity={0.45} scale={40} blur={2.4} far={12} />
           <Preload all />
         </Suspense>
-        <OrbitControls makeDefault enableDamping />
+        <OrbitControls makeDefault enableDamping target={[0, 1, 0]} />
         <AdaptiveDpr pixelated />
+        <Stats />
       </Canvas>
       <ProgressOverlay />
+      <DevControls />
     </>
   );
 }
