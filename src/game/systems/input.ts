@@ -14,7 +14,6 @@ export enum Action {
   Jump,
   Reload,
   Interact,
-  ToggleCamera,
   Weapon1,
   Weapon2,
   Weapon3,
@@ -38,7 +37,6 @@ const KEY_BINDINGS: Readonly<Record<string, Action>> = {
   Space: Action.Jump,
   KeyR: Action.Reload,
   KeyE: Action.Interact,
-  KeyV: Action.ToggleCamera,
   Digit1: Action.Weapon1,
   Digit2: Action.Weapon2,
   Digit3: Action.Weapon3,
@@ -67,7 +65,6 @@ export interface InputState {
   // edges — true for exactly one frame on press
   reloadPressed: boolean;
   interactPressed: boolean;
-  toggleCameraPressed: boolean;
   /** 1/2/3 if a weapon slot was pressed this frame, else 0. */
   weaponSlot: number;
   pointerLocked: boolean;
@@ -85,13 +82,16 @@ export const input: InputState = {
   jumpQueued: false,
   reloadPressed: false,
   interactPressed: false,
-  toggleCameraPressed: false,
   weaponSlot: 0,
   pointerLocked: false,
 };
 
 const LOOK_SENSITIVITY = 0.0022;
 const MAX_PITCH = THREE.MathUtils.degToRad(88);
+
+/** Dev/test affordance: ?test=1 forces "locked" so headless harnesses can drive the mouse. */
+export const TEST_MODE =
+  typeof window !== "undefined" && new URLSearchParams(window.location.search).has("test");
 
 /**
  * Captures keyboard + mouse, maps to logical actions, and writes the shared
@@ -105,12 +105,17 @@ export class InputSystem implements GameModule {
 
   private dom: HTMLElement | null = null;
   private readonly held = new Set<Action>();
-  private readonly prevHeld = new Set<Action>();
   private accumDX = 0;
   private accumDY = 0;
+  // Discrete-action latches set on keydown, consumed once per frame. Latches
+  // (not held-diff edges) so a tap shorter than a frame is never dropped.
+  private pendingReload = false;
+  private pendingInteract = false;
+  private pendingWeapon = 0;
 
   init(ctx: GameContext): void {
     this.dom = ctx.gl.domElement;
+    if (TEST_MODE) input.pointerLocked = true; // headless harness drives mouse without lock
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
     this.dom.addEventListener("mousedown", this.onMouseDown);
@@ -140,21 +145,13 @@ export class InputSystem implements GameModule {
     input.sprint = this.held.has(Action.Sprint);
     input.crouch = this.held.has(Action.Crouch);
 
-    // Edge detection via held vs prevHeld. (Jump is a keydown latch instead.)
-    input.reloadPressed = this.pressed(Action.Reload);
-    input.interactPressed = this.pressed(Action.Interact);
-    input.toggleCameraPressed = this.pressed(Action.ToggleCamera);
-    input.weaponSlot = this.pressed(Action.Weapon1)
-      ? 1
-      : this.pressed(Action.Weapon2)
-        ? 2
-        : this.pressed(Action.Weapon3)
-          ? 3
-          : 0;
-
-    // Snapshot held set for next-frame edge diffing (reuse, no alloc).
-    this.prevHeld.clear();
-    this.held.forEach((a) => this.prevHeld.add(a));
+    // Discrete actions consumed from keydown latches (frame-rate independent).
+    input.reloadPressed = this.pendingReload;
+    input.interactPressed = this.pendingInteract;
+    input.weaponSlot = this.pendingWeapon;
+    this.pendingReload = false;
+    this.pendingInteract = false;
+    this.pendingWeapon = 0;
   }
 
   dispose(): void {
@@ -167,15 +164,10 @@ export class InputSystem implements GameModule {
     this.dom?.removeEventListener("contextmenu", this.preventDefault);
     window.removeEventListener("blur", this.onBlur);
     this.held.clear();
-    this.prevHeld.clear();
   }
 
   private axis(pos: Action, neg: Action): number {
     return (this.held.has(pos) ? 1 : 0) - (this.held.has(neg) ? 1 : 0);
-  }
-
-  private pressed(a: Action): boolean {
-    return this.held.has(a) && !this.prevHeld.has(a);
   }
 
   private readonly onKeyDown = (e: KeyboardEvent): void => {
@@ -184,7 +176,26 @@ export class InputSystem implements GameModule {
     e.preventDefault();
     if (e.repeat) return; // ignore auto-repeat for latches
     this.held.add(action);
-    if (action === Action.Jump) input.jumpQueued = true;
+    switch (action) {
+      case Action.Jump:
+        input.jumpQueued = true;
+        break;
+      case Action.Reload:
+        this.pendingReload = true;
+        break;
+      case Action.Interact:
+        this.pendingInteract = true;
+        break;
+      case Action.Weapon1:
+        this.pendingWeapon = 1;
+        break;
+      case Action.Weapon2:
+        this.pendingWeapon = 2;
+        break;
+      case Action.Weapon3:
+        this.pendingWeapon = 3;
+        break;
+    }
   };
 
   private readonly onKeyUp = (e: KeyboardEvent): void => {
@@ -211,6 +222,7 @@ export class InputSystem implements GameModule {
   };
 
   private readonly onPointerLockChange = (): void => {
+    if (TEST_MODE) return;
     input.pointerLocked = document.pointerLockElement === this.dom;
   };
 

@@ -40,17 +40,53 @@ await page.goto(URL, { waitUntil: "networkidle2", timeout: 45000 });
 // Let the engine boot, assets stream, physics settle.
 await new Promise((r) => setTimeout(r, 4000));
 
-// Engage pointer lock + drive some input to exercise the controller.
-await page.mouse.click(640, 360);
-await new Promise((r) => setTimeout(r, 400));
-for (const key of ["KeyW", "KeyW", "Space", "KeyV", "KeyV"]) {
-  await page.keyboard.down(key);
-  await new Promise((r) => setTimeout(r, 250));
-  await page.keyboard.up(key);
-}
-await new Promise((r) => setTimeout(r, 600));
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Click into the canvas (?test=1 forces input active without real pointer lock).
+await page.mouse.click(640, 360);
+await wait(500);
+
+// nudge forward + jump
+await page.keyboard.down("KeyW");
+await wait(300);
+await page.keyboard.up("KeyW");
+await page.keyboard.press("Space");
+await wait(300);
+
+// AR: switch, hold full-auto, screenshot MID-BURST (FP weapon + flash + tracer).
+await page.keyboard.press("Digit2");
+await wait(350);
+await page.mouse.down();
+await wait(220);
 await page.screenshot({ path: OUT });
+await wait(300);
+await page.mouse.up();
+
+// reload (let it fully finish before switching — switch is locked during reload)
+await page.keyboard.press("KeyR");
+await wait(2000);
+
+// Sniper: switch, ADS, screenshot SCOPE overlay.
+await page.keyboard.press("Digit3");
+await wait(450);
+await page.mouse.down({ button: "right" });
+await wait(800);
+const scopeOut = OUT.replace(/\.png$/, "-scope.png");
+await page.screenshot({ path: scopeOut });
+await page.mouse.up({ button: "right" });
+await wait(400);
+console.log(`scope screenshot: ${scopeOut}`);
+
+// AR red-dot sight: switch, ADS, screenshot.
+await page.keyboard.press("Digit2");
+await wait(450);
+await page.mouse.down({ button: "right" });
+await wait(800);
+const arAdsOut = OUT.replace(/\.png$/, "-ar-ads.png");
+await page.screenshot({ path: arAdsOut });
+await page.mouse.up({ button: "right" });
+await wait(300);
+console.log(`ar-ads screenshot: ${arAdsOut}`);
 
 // Filter known-harmless three.js 0.184 deprecation chatter.
 const IGNORE = [

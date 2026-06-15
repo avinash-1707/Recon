@@ -9,9 +9,12 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { DevControls } from "@/components/DevControls";
 import { PlayOverlay } from "@/components/PlayOverlay";
 import { CoreSystems } from "@/components/CoreSystems";
+import { Crosshair } from "@/components/Crosshair";
+import { ScopeOverlay } from "@/components/ScopeOverlay";
 import { EngineProvider, EngineRunner } from "@/game/core/engineContext";
 import { useWorldStore } from "@/game/state/worldStore";
 import { Player } from "@/game/entities/Player";
+import { WeaponRig } from "@/game/entities/WeaponRig";
 import CityLevel from "@/game/levels/CityLevel";
 
 function Lights() {
@@ -59,6 +62,7 @@ function World() {
       <CoreSystems />
       <CityLevel />
       <Player />
+      <WeaponRig />
     </Physics>
   );
 }
@@ -94,6 +98,8 @@ export function GameCanvas() {
         <AdaptiveDpr pixelated />
         <Stats />
       </Canvas>
+      <Crosshair />
+      <ScopeOverlay />
       <ProgressOverlay />
       <PlayOverlay />
       <DevControls />

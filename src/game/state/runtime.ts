@@ -50,3 +50,27 @@ export interface PlayerPhysics {
 }
 
 export const playerPhysics: PlayerPhysics = { body: null, collider: null };
+
+/**
+ * Transient weapon animation state, written by WeaponSystem (logic) and read by
+ * ViewmodelSystem (presentation) — keeps the two decoupled without re-renders.
+ * All scalars are 0..1.
+ */
+export interface WeaponRuntime {
+  recoil: number; // decays after each shot → kick
+  slide: number; // slide/bolt travel
+  reload: number; // reload progress (0 = idle)
+  ads: number; // aim-down-sights blend
+  switchT: number; // 1 = weapon fully raised after a swap
+  /** Muzzle tip in world space, published by the viewmodel for tracer origin. */
+  muzzlePos: THREE.Vector3;
+}
+
+export const weaponRuntime: WeaponRuntime = {
+  recoil: 0,
+  slide: 0,
+  reload: 0,
+  ads: 0,
+  switchT: 1,
+  muzzlePos: new THREE.Vector3(),
+};

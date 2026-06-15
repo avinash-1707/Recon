@@ -1,21 +1,23 @@
 "use client";
 
 import { usePointerLock } from "@/hooks/usePointerLock";
+import { TEST_MODE } from "@/game/systems/input";
 
 const CONTROLS: ReadonlyArray<[string, string]> = [
   ["WASD", "Move"],
   ["Shift", "Sprint"],
   ["Ctrl / C", "Crouch"],
   ["Space", "Jump"],
-  ["Mouse", "Look"],
-  ["V", "Camera"],
+  ["LMB / RMB", "Fire / Aim"],
+  ["1 / 2 / 3", "Pistol / AR / Sniper"],
+  ["R", "Reload"],
   ["Esc", "Release cursor"],
 ];
 
 /** Click-to-play overlay. Engages pointer lock and lists the controls. */
 export function PlayOverlay() {
   const { locked, request } = usePointerLock();
-  if (locked) return null;
+  if (locked || TEST_MODE) return null;
 
   return (
     <div
