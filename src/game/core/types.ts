@@ -1,6 +1,17 @@
 import type * as THREE from "three";
 import type { World } from "@dimforge/rapier3d-compat";
 
+/** Canonical update-order slots so the per-frame pipeline is deterministic. */
+export const SystemOrder = {
+  Input: 0,
+  PlayerController: 10,
+  AI: 20,
+  Weapons: 30,
+  Viewmodel: 40,
+  Camera: 50,
+  Entity: 60,
+} as const;
+
 /**
  * Shared engine handle passed to every module's `init`. Holds the live Three.js
  * objects and the Rapier physics world. Systems/entities pull what they need
@@ -21,6 +32,12 @@ export interface GameContext {
 export interface GameModule {
   /** Unique id — used for registration dedupe and targeted unregister. */
   readonly id: string;
+
+  /**
+   * Update order (ascending). Lets us pin the pipeline — input → controllers →
+   * weapons/ai → camera — independent of React mount order. Default 0.
+   */
+  readonly order?: number;
 
   /** Allocate resources, subscribe to stores, build meshes/colliders. */
   init(ctx: GameContext): void;

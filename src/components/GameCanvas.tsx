@@ -2,20 +2,16 @@
 
 import { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
-import {
-  OrbitControls,
-  ContactShadows,
-  AdaptiveDpr,
-  Preload,
-  Stats,
-  useProgress,
-} from "@react-three/drei";
+import { ContactShadows, AdaptiveDpr, Preload, Stats, useProgress } from "@react-three/drei";
 import { Physics } from "@react-three/rapier";
 import * as THREE from "three";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { DevControls } from "@/components/DevControls";
+import { PlayOverlay } from "@/components/PlayOverlay";
+import { CoreSystems } from "@/components/CoreSystems";
 import { EngineProvider, EngineRunner } from "@/game/core/engineContext";
 import { useWorldStore } from "@/game/state/worldStore";
+import { Player } from "@/game/entities/Player";
 import SandboxLevel from "@/game/levels/SandboxLevel";
 
 function Lights() {
@@ -60,7 +56,9 @@ function World() {
       updatePriority={-50}
     >
       <EngineRunner />
+      <CoreSystems />
       <SandboxLevel />
+      <Player />
     </Physics>
   );
 }
@@ -93,11 +91,11 @@ export function GameCanvas() {
           <ContactShadows position={[0, 0.01, 0]} opacity={0.45} scale={40} blur={2.4} far={12} />
           <Preload all />
         </Suspense>
-        <OrbitControls makeDefault enableDamping target={[0, 1, 0]} />
         <AdaptiveDpr pixelated />
         <Stats />
       </Canvas>
       <ProgressOverlay />
+      <PlayOverlay />
       <DevControls />
     </>
   );

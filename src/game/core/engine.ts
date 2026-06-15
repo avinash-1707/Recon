@@ -29,6 +29,8 @@ export class Engine {
       throw new Error(`Engine: duplicate module id "${module.id}"`);
     }
     this.modules.push(module);
+    // Keep modules sorted by update order (stable for equal orders).
+    this.modules.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     // If the engine is already running, init immediately.
     if (this.ctx) module.init(this.ctx);
     return this;
