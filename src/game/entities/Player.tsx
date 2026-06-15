@@ -10,10 +10,11 @@ import {
 import { useEngine } from "@/game/core/engineContext";
 import { PlayerController } from "@/game/entities/playerController";
 import { CameraMode, usePlayerStore } from "@/game/state/playerStore";
+import { PLAYER_SPAWN } from "@/game/levels/spawns";
 
 const RADIUS = 0.34;
 const HALF_HEIGHT = 0.51; // cylinder half-height → ~1.7m total standing capsule
-const SPAWN: [number, number, number] = [0, 2, 6];
+const SPAWN: [number, number, number] = [PLAYER_SPAWN.x, PLAYER_SPAWN.y, PLAYER_SPAWN.z];
 
 /**
  * Player physics body: a kinematic-position capsule driven by PlayerController.

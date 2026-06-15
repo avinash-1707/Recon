@@ -12,7 +12,7 @@ import { CoreSystems } from "@/components/CoreSystems";
 import { EngineProvider, EngineRunner } from "@/game/core/engineContext";
 import { useWorldStore } from "@/game/state/worldStore";
 import { Player } from "@/game/entities/Player";
-import SandboxLevel from "@/game/levels/SandboxLevel";
+import CityLevel from "@/game/levels/CityLevel";
 
 function Lights() {
   return (
@@ -57,7 +57,7 @@ function World() {
     >
       <EngineRunner />
       <CoreSystems />
-      <SandboxLevel />
+      <CityLevel />
       <Player />
     </Physics>
   );
@@ -88,7 +88,7 @@ export function GameCanvas() {
           <EngineProvider>
             <World />
           </EngineProvider>
-          <ContactShadows position={[0, 0.01, 0]} opacity={0.45} scale={40} blur={2.4} far={12} />
+          <ContactShadows position={[0, 0.01, 0]} opacity={0.35} scale={60} blur={2.6} far={14} frames={1} />
           <Preload all />
         </Suspense>
         <AdaptiveDpr pixelated />
