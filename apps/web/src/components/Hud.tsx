@@ -7,6 +7,7 @@ import { useHudStore, AlertLevel } from "@/game/state/hudStore";
 import { respawnPlayer } from "@/game/systems/respawn";
 import { useAppStore } from "@/game/state/appStore";
 import { Scoreboard } from "@/components/Scoreboard";
+import { Minimap } from "@/components/Minimap";
 import { WEAPONS } from "@/game/weapons/defs";
 
 const ACCENT = "#cfe0e6";
@@ -156,6 +157,7 @@ function GameOver() {
 export function Hud() {
   return (
     <>
+      <Minimap />
       <DetectionMeter />
       <EnemyCounter />
       <HealthReadout />
