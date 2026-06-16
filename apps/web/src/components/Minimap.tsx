@@ -20,8 +20,8 @@ const PEER_COLOR   = "#f04c4c";   // red blips for hostiles
 const LABEL_COLOR  = "rgba(215,226,230,0.45)";
 const CARDINAL_COLOR = "rgba(76,201,240,0.50)";
 
-/** Half the world radius used to map world-units → canvas pixels (perimeter ≈ 72). */
-const WORLD_HALF = 72;
+/** Half the world radius used to map world-units → canvas pixels (perimeter ≈ 80). */
+const WORLD_HALF = 80;
 
 /** Building footprint half-sizes (metres) — match true footprints. */
 const HOUSE_HALF  = 4.7;
@@ -85,8 +85,10 @@ function draw(
 
   // ── Buildings ─────────────────────────────────────────────────────────────
   for (const plot of PLOTS) {
-    const isWare = plot.kind === 2;
-    const half   = isWare ? WARE_HALF : HOUSE_HALF;
+    // Bigger archetypes (warehouse/squad/tower) read larger + cyan-tinted.
+    const big = plot.kind >= 2;
+    const half =
+      plot.kind === 3 ? 7 : plot.kind === 4 ? 4.5 : plot.kind === 2 ? WARE_HALF : HOUSE_HALF;
     const [sx, sy] = worldToScreen(plot.x, plot.z, cx, cy, R);
 
     // Skip if clearly outside the circle (quick reject)
@@ -97,8 +99,8 @@ function draw(
     ctx.save();
     ctx.translate(sx, sy);
     ctx.rotate(plot.yaw);
-    ctx.fillStyle   = isWare ? WARE_FILL   : HOUSE_FILL;
-    ctx.strokeStyle = isWare ? WARE_STROKE : HOUSE_STROKE;
+    ctx.fillStyle   = big ? WARE_FILL   : HOUSE_FILL;
+    ctx.strokeStyle = big ? WARE_STROKE : HOUSE_STROKE;
     ctx.lineWidth   = dpr * 0.75;
     ctx.fillRect(-pxHalf, -pxHalf, pxHalf * 2, pxHalf * 2);
     ctx.strokeRect(-pxHalf, -pxHalf, pxHalf * 2, pxHalf * 2);

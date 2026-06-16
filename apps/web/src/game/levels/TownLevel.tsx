@@ -5,11 +5,13 @@ import { Sky } from "@react-three/drei";
 import { RigidBody, CuboidCollider } from "@react-three/rapier";
 import { Building } from "@/game/levels/Building";
 import { House } from "@/game/levels/House";
+import { SquadHouse } from "@/game/levels/SquadHouse";
+import { OpenRoofTower } from "@/game/levels/OpenRoofTower";
 import { CoverProps } from "@/game/levels/Props";
 import { MAT, disposeLevelMaterials } from "@/game/levels/materials";
 import { PLOTS, SPACING, HALF, TOWN_HALF } from "@/game/levels/layout";
 
-const BORDER = TOWN_HALF + 8; // perimeter wall radius (72)
+const BORDER = TOWN_HALF + 8; // perimeter wall radius
 const GROUND = BORDER * 2 + 24;
 const WALL_H = 5;
 const WALL_T = 1.2;
@@ -91,17 +93,24 @@ export default function TownLevel() {
 
       {/* buildings */}
       {PLOTS.map((p, i) => {
+        const at = { position: [p.x, 0, p.z] as [number, number, number], rotationY: p.yaw };
         if (p.kind === 2) {
-          return <Building key={i} position={[p.x, 0, p.z]} rotationY={p.yaw} width={10} depth={8} height={7} />;
+          return <Building key={i} {...at} width={10} depth={8} height={7} />;
+        }
+        if (p.kind === 3) {
+          return <SquadHouse key={i} {...at} variant={p.variant} alt={p.alt} />;
+        }
+        if (p.kind === 4) {
+          return <OpenRoofTower key={i} {...at} variant={p.variant} alt={p.alt} />;
         }
         return (
           <House
             key={i}
-            position={[p.x, 0, p.z]}
-            rotationY={p.yaw}
+            {...at}
             storeys={p.kind === 1 ? 2 : 1}
             width={p.kind === 1 ? 8 : 9}
             depth={p.kind === 1 ? 7 : 6}
+            variant={p.variant}
             alt={p.alt}
           />
         );

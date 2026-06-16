@@ -25,7 +25,7 @@ export interface Plot {
   alt: boolean;
 }
 
-export const SPACING = 16; // metres between plot centres (was 14)
+export const SPACING = 18; // metres between plot centres (room for big archetypes; was 14)
 export const HALF = 4; // grid extends -HALF..HALF on each axis (9x9, was 3/7x7)
 /** Half-width of the built area (outermost plot centre). */
 export const TOWN_HALF = HALF * SPACING; // 64 (was 42)
@@ -53,12 +53,21 @@ export const PLOTS: ReadonlyArray<Plot> = (() => {
 
       const h = hash(gx, gz);
       const edge = Math.abs(gx) === HALF || Math.abs(gz) === HALF;
-      // Warehouses cluster on the outer ring; inner blocks are mostly houses
-      // with a mix of 1- and 2-storey. (Kinds 3/4 reserved for the next phase.)
+      // Big archetypes (squad house / tower) stay OFF the outer ring so their
+      // rear stairs / footprints can't clip the perimeter wall. The ring is
+      // warehouses + plain houses; inner blocks carry the variety.
       let kind: Plot["kind"];
-      if (edge && h < 0.4) kind = 2;
-      else if (h < 0.45) kind = 1;
-      else kind = 0;
+      if (edge) {
+        kind = h < 0.45 ? 2 : h < 0.72 ? 1 : 0;
+      } else if (h < 0.1) {
+        kind = 4; // open-roof tower (overwatch) — rare
+      } else if (h < 0.27) {
+        kind = 3; // PUBG squad house
+      } else if (h < 0.52) {
+        kind = 1; // 2-storey house
+      } else {
+        kind = 0; // 1-storey house
+      }
 
       const variant = (Math.floor(hash(gz, gx) * 4) % 4) as 0 | 1 | 2 | 3;
       out.push({ x, z, yaw, kind, variant, alt: (gx + gz) % 2 === 0 });
