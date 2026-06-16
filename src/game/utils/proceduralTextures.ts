@@ -57,3 +57,37 @@ export function makeGroundTexture(): THREE.Texture {
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
+
+/** Irregular dark-red blood splatter with a transparent falloff — for ground decals. */
+export function makeBloodTexture(): THREE.Texture {
+  const made = canvas(256);
+  if (!made) return new THREE.Texture();
+  const { c, ctx } = made;
+  const s = 256;
+  const cx = s / 2;
+  const cy = s / 2;
+
+  const grad = ctx.createRadialGradient(cx, cy, 4, cx, cy, s * 0.42);
+  grad.addColorStop(0, "rgba(110,8,8,0.95)");
+  grad.addColorStop(0.55, "rgba(85,5,5,0.8)");
+  grad.addColorStop(1, "rgba(60,0,0,0)");
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, s * 0.42, 0, Math.PI * 2);
+  ctx.fill();
+
+  // splatter droplets
+  ctx.fillStyle = "rgba(95,5,5,0.85)";
+  for (let i = 0; i < 26; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const r = s * (0.18 + Math.random() * 0.28);
+    const rad = 2 + Math.random() * 7;
+    ctx.beginPath();
+    ctx.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, rad, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}

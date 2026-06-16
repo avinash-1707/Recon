@@ -1,5 +1,9 @@
 import type * as THREE from "three";
 import type { World } from "@dimforge/rapier3d-compat";
+import type { useRapier } from "@react-three/rapier";
+
+/** The Rapier API (RigidBodyDesc, ColliderDesc, …) for creating bodies in code. */
+export type RapierAPI = ReturnType<typeof useRapier>["rapier"];
 
 /** Canonical update-order slots so the per-frame pipeline is deterministic. */
 export const SystemOrder = {
@@ -23,6 +27,8 @@ export interface GameContext {
   gl: THREE.WebGLRenderer;
   /** Rapier physics world (driven by @react-three/rapier's fixed stepper). */
   world: World;
+  /** Rapier API for creating bodies/colliders in code. */
+  rapier: RapierAPI;
 }
 
 /**

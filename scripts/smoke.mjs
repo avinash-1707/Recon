@@ -44,7 +44,10 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Click into the canvas (?test=1 forces input active without real pointer lock).
 await page.mouse.click(640, 360);
-await wait(500);
+await wait(1500); // let enemies spawn + start patrolling
+const enemiesOut = OUT.replace(/\.png$/, "-enemies.png");
+await page.screenshot({ path: enemiesOut });
+console.log(`enemies screenshot: ${enemiesOut}`);
 
 // nudge forward + jump
 await page.keyboard.down("KeyW");

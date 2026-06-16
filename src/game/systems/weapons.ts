@@ -8,6 +8,7 @@ import { WeaponType, WEAPON_SLOTS, type WeaponDef } from "@/game/weapons/types";
 import { WEAPONS } from "@/game/weapons/defs";
 import { WeaponFSM } from "@/game/weapons/fsm";
 import { useWeaponStore } from "@/game/state/weaponStore";
+import { useHudStore } from "@/game/state/hudStore";
 import { castShot, type ShotHit } from "@/game/physics/raycast";
 import type { FxSystem } from "@/game/systems/effects";
 import type { AudioSystem } from "@/game/systems/audio";
@@ -142,9 +143,10 @@ export class WeaponSystem implements GameModule {
     this.fx.spawnTracer(from, this.hit.point, def.tracerColor);
     this.fx.spawnMuzzleFlash(from, def.tracerColor);
 
-    // damage resolution (enemies register their colliders; Step 7)
+    // damage resolution → hitmarker feedback (white body / red head)
     if (this.hit.hit && this.hit.collider) {
-      reportHit(this.hit.collider.handle, def.damage, this.hit.point);
+      const res = reportHit(this.hit.collider.handle, def.damage, this.hit.point);
+      if (res) useHudStore.getState().registerHit(res.headshot, res.killed);
     }
   }
 

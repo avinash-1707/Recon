@@ -21,7 +21,7 @@ export function useGameLoop(engine: Engine): void {
   const scene = useThree((s) => s.scene);
   const gl = useThree((s) => s.gl);
   const camera = useThree((s) => s.camera);
-  const { world } = useRapier();
+  const { world, rapier } = useRapier();
   const pausedRef = useRef(false);
 
   useEffect(() => {
@@ -30,6 +30,7 @@ export function useGameLoop(engine: Engine): void {
       gl,
       camera: camera as THREE.PerspectiveCamera,
       world,
+      rapier,
     };
     engine.init(ctx);
 
@@ -42,7 +43,7 @@ export function useGameLoop(engine: Engine): void {
       unsub();
       engine.dispose();
     };
-  }, [engine, scene, gl, camera, world]);
+  }, [engine, scene, gl, camera, world, rapier]);
 
   useFrame((_, dt) => {
     if (pausedRef.current) return;

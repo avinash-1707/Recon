@@ -8,6 +8,8 @@ import { WeaponSystem } from "@/game/systems/weapons";
 import { ViewmodelSystem } from "@/game/systems/viewmodel";
 import { TEST_MODE } from "@/game/systems/input";
 import { useWeaponStore } from "@/game/state/weaponStore";
+import { useHudStore } from "@/game/state/hudStore";
+import { usePlayerStore } from "@/game/state/playerStore";
 import { weaponRuntime } from "@/game/state/runtime";
 
 /**
@@ -23,6 +25,8 @@ export function WeaponRig() {
       (window as unknown as { __recon?: unknown }).__recon = {
         weapon: () => useWeaponStore.getState(),
         runtime: () => ({ ...weaponRuntime }),
+        hud: () => useHudStore.getState(),
+        player: () => usePlayerStore.getState(),
       };
     }
     const fx = new FxSystem();

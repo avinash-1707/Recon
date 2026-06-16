@@ -15,6 +15,7 @@ import { EngineProvider, EngineRunner } from "@/game/core/engineContext";
 import { useWorldStore } from "@/game/state/worldStore";
 import { Player } from "@/game/entities/Player";
 import { WeaponRig } from "@/game/entities/WeaponRig";
+import { Enemies } from "@/game/entities/Enemies";
 import CityLevel from "@/game/levels/CityLevel";
 
 function Lights() {
@@ -63,6 +64,7 @@ function World() {
       <CityLevel />
       <Player />
       <WeaponRig />
+      <Enemies />
     </Physics>
   );
 }
