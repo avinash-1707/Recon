@@ -18,7 +18,7 @@ const SHOTS: Partial<Readonly<Record<WeaponType, ShotProfile>>> = {
 };
 
 /**
- * Procedural Web Audio gun SFX — synthesized (noise burst through a bandpass +
+ * Procedural Web Audio gun SFX - synthesized (noise burst through a bandpass +
  * a low sine "body"), so there are no asset downloads and every weapon has a
  * distinct report. Asset-ready: swap the synth calls for decoded sample buffers
  * later without touching callers. The context is created suspended and resumed
@@ -111,7 +111,7 @@ export class AudioSystem implements GameModule {
     this.click(0, 1400, 0.18, 0.04);
   }
 
-  /** Knife swing whoosh — noise through a downward-sweeping bandpass. */
+  /** Knife swing whoosh - noise through a downward-sweeping bandpass. */
   playMelee(): void {
     if (!this.resume()) return;
     const ctx = this.ctx!;

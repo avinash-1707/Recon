@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 /**
  * Tracks pointer-lock state and exposes a `request()` to engage it (call from a
- * user gesture — click). The WebGL canvas is found under #game-root.
+ * user gesture - click). The WebGL canvas is found under #game-root.
  */
 export function usePointerLock(): { locked: boolean; request: () => void } {
   const [locked, setLocked] = useState(false);

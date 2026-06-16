@@ -22,7 +22,7 @@ interface Slot {
   timer: number;
 }
 
-/** Ammo crates in houses — resupply all weapon reserves on pickup. */
+/** Ammo crates in houses - resupply all weapon reserves on pickup. */
 export function AmmoPickups() {
   const groups = useRef<Array<THREE.Group | null>>([]);
   const slots = useRef<Slot[]>(SPOTS.map(() => ({ available: true, timer: 0 })));

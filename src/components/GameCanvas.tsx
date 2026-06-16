@@ -49,7 +49,7 @@ function Lights() {
  * Physics world + engine runner. <Physics> owns the fixed stepper (timeStep)
  * and render interpolation; `updatePriority={-50}` steps physics before the
  * engine's useFrame so we read fresh interpolated transforms. `paused`/`debug`
- * are reactive config (toggled rarely) — fine to read with a selector here.
+ * are reactive config (toggled rarely) - fine to read with a selector here.
  */
 function World() {
   const paused = useWorldStore((s) => s.paused);

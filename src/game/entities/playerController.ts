@@ -72,7 +72,7 @@ export class PlayerController implements GameModule {
     const ctrl = this.controller;
     if (!ctrl) return;
 
-    // Consume a pending teleport (respawn) — set the body ourselves so it isn't
+    // Consume a pending teleport (respawn) - set the body ourselves so it isn't
     // overwritten by this step's movement.
     if (playerRuntime.teleport) {
       const t = playerRuntime.teleport;
@@ -137,7 +137,7 @@ export class PlayerController implements GameModule {
     playerRuntime.position.copy(tmpNext);
     playerRuntime.grounded = this.grounded;
 
-    // Discrete HUD state — setters no-op when unchanged (no needless re-render).
+    // Discrete HUD state - setters no-op when unchanged (no needless re-render).
     const store = usePlayerStore.getState();
     store.setStance(crouch ? Stance.Crouch : Stance.Stand);
     store.setSprinting(playerRuntime.sprinting);
@@ -145,7 +145,7 @@ export class PlayerController implements GameModule {
   }
 
   update(): void {
-    // No variable-rate work — motion is fully fixed-step.
+    // No variable-rate work - motion is fully fixed-step.
   }
 
   dispose(): void {

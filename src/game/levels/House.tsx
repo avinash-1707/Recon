@@ -40,7 +40,7 @@ interface Win {
  * Detailed PUBG-style house: textured plastered walls with real window
  * OPENINGS filled by breakable translucent glass, a front door, a textured
  * gable roof shallow enough to stand on (with slope colliders), a chimney, and
- * — for 2-storey — an upper floor reached by an interior staircase.
+ * - for 2-storey - an upper floor reached by an interior staircase.
  */
 export function House({ position, rotationY = 0, storeys = 1, width = 8, depth = 7, alt = false }: HouseProps) {
   const W = width;

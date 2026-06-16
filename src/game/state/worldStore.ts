@@ -3,7 +3,7 @@ import { create } from "zustand";
 /**
  * Global world/sim flags. Read these *reactively* only for React-level config
  * (e.g. the <Physics> `paused`/`debug` props). Inside the game loop, read via
- * `useWorldStore.subscribe(...)` transient subscriptions — never a hook that
+ * `useWorldStore.subscribe(...)` transient subscriptions - never a hook that
  * re-renders per frame.
  */
 export interface WorldState {

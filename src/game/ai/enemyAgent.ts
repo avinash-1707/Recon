@@ -189,7 +189,7 @@ export class EnemyAgent {
     this.body.setNextKinematicTranslation({ x: this.pos.x, y: CENTER_Y, z: this.pos.z });
   }
 
-  /** Render step (variable dt) — advance + blend animation, interpolate model. */
+  /** Render step (variable dt) - advance + blend animation, interpolate model. */
   update(dt: number, alpha: number): void {
     this.mixer.update(dt);
     if (!this.dead) {
@@ -269,7 +269,7 @@ export class EnemyAgent {
     this.smoothYaw(dt);
     const d = Math.hypot(px - this.pos.x, pz - this.pos.z);
     if (d > AI.engageRange) {
-      // close the distance — hold fire while moving
+      // close the distance - hold fire while moving
       this.moveToward(px, pz, AI.runSpeed, dt);
     } else {
       // stationary: only ever fire when planted
@@ -286,7 +286,7 @@ export class EnemyAgent {
     if (d > AI.waypointRadius) {
       this.moveToward(this.lastKnown.x, this.lastKnown.z, AI.walkSpeed, dt);
     } else {
-      // arrived — scan around
+      // arrived - scan around
       this.scanTimer += dt;
       this.targetYaw = Math.sin(this.scanTimer * 1.5) * Math.PI;
       this.smoothYaw(dt);

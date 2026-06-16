@@ -17,7 +17,7 @@ const SPAWN: [number, number, number] = [PLAYER_SPAWN.x, PLAYER_SPAWN.y, PLAYER_
 
 /**
  * Player physics body: a kinematic-position capsule driven by PlayerController.
- * No mesh yet — the FP viewmodel / TP body arrive in the weapon + camera phases.
+ * No mesh yet - the FP viewmodel / TP body arrive in the weapon + camera phases.
  */
 export function Player() {
   const engine = useEngine();

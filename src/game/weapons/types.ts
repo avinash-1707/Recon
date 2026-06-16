@@ -14,14 +14,14 @@ export enum WeaponAction {
 }
 
 /**
- * Fully-typed weapon configuration. Adding a weapon = adding one of these — the
+ * Fully-typed weapon configuration. Adding a weapon = adding one of these - the
  * FSM, viewmodel, hitscan, FX, and HUD all read from it. No magic numbers.
  */
 export interface WeaponDef {
   readonly type: WeaponType;
   readonly name: string;
   readonly damage: number;
-  /** Rounds per minute — fire interval = 60 / rpm. */
+  /** Rounds per minute - fire interval = 60 / rpm. */
   readonly rpm: number;
   /** True = hold-to-fire, false = one shot per click. */
   readonly automatic: boolean;

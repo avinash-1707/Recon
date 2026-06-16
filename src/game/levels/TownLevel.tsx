@@ -17,8 +17,8 @@ const WALL_H = 5;
 const WALL_T = 1.2;
 
 /**
- * Enclosed town map (COD/PUBG TDM feel): a grid of ~20 buildings — 1- and
- * 2-storey houses plus warehouses — around a central plaza, streets between
+ * Enclosed town map (COD/PUBG TDM feel): a grid of ~20 buildings - 1- and
+ * 2-storey houses plus warehouses - around a central plaza, streets between
  * rows, scattered cover, and a closed perimeter wall. Static colliders.
  */
 export default function TownLevel() {

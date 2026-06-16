@@ -18,7 +18,7 @@ export interface HudStoreState {
   alert: AlertLevel;
   enemiesAlive: number;
   enemiesTotal: number;
-  /** Increments on every confirmed hit — lets the crosshair retrigger its marker. */
+  /** Increments on every confirmed hit - lets the crosshair retrigger its marker. */
   hitTick: number;
   hitKind: HitKind;
   hitKill: boolean;

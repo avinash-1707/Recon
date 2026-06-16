@@ -2,14 +2,14 @@ import * as THREE from "three";
 import type { Collider, RigidBody } from "@dimforge/rapier3d-compat";
 
 /**
- * Transient, per-frame game state — mutated directly in the loop, NEVER through
+ * Transient, per-frame game state - mutated directly in the loop, NEVER through
  * React/Zustand (which would re-render). Systems read/write these shared objects
  * to avoid allocation and cross-module plumbing. Discrete, UI-facing state
  * (health, ammo, camera mode) lives in the Zustand stores instead.
  */
 
 export interface PlayerRuntime {
-  /** Capsule center, world space — the logical (fixed-step) position. */
+  /** Capsule center, world space - the logical (fixed-step) position. */
   position: THREE.Vector3;
   /** Previous fixed-step center, for render interpolation. */
   prevPosition: THREE.Vector3;
@@ -25,9 +25,9 @@ export interface PlayerRuntime {
   eyeHeight: number;
   crouching: boolean;
   sprinting: boolean;
-  /** Pending teleport target (respawn) — consumed by the controller. */
+  /** Pending teleport target (respawn) - consumed by the controller. */
   teleport: THREE.Vector3 | null;
-  /** Pending upward launch velocity (jump pad) — consumed by the controller. */
+  /** Pending upward launch velocity (jump pad) - consumed by the controller. */
   launch: number;
 }
 
@@ -59,7 +59,7 @@ export const playerPhysics: PlayerPhysics = { body: null, collider: null };
 
 /**
  * Transient weapon animation state, written by WeaponSystem (logic) and read by
- * ViewmodelSystem (presentation) — keeps the two decoupled without re-renders.
+ * ViewmodelSystem (presentation) - keeps the two decoupled without re-renders.
  * All scalars are 0..1.
  */
 export interface WeaponRuntime {

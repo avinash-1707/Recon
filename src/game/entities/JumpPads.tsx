@@ -5,7 +5,7 @@ import { useFrame } from "@react-three/fiber";
 import { playerRuntime } from "@/game/state/runtime";
 import { PLOTS } from "@/game/levels/layout";
 
-const LAUNCH = 21; // reaches ~9m — onto rooftops
+const LAUNCH = 21; // reaches ~9m - onto rooftops
 const RADIUS = 1.3;
 
 // A pad in the street beside a handful of buildings (centre-facing edge).
@@ -16,7 +16,7 @@ const PADS: ReadonlyArray<[number, number]> = PLOTS.filter((_, i) => i % 4 === 0
     return [p.x - (p.x / len) * 7, p.z - (p.z / len) * 7] as [number, number];
   });
 
-/** Bounce pads — step on one (grounded) to launch onto nearby rooftops. */
+/** Bounce pads - step on one (grounded) to launch onto nearby rooftops. */
 export function JumpPads() {
   const cooldown = useRef(0);
 

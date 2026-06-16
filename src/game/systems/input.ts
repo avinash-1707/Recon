@@ -59,12 +59,12 @@ export interface InputState {
   fire: boolean;
   aim: boolean;
   /**
-   * Jump latch — set on keydown, consumed by the fixed-step controller. A latch
+   * Jump latch - set on keydown, consumed by the fixed-step controller. A latch
    * (not a per-frame edge) so a jump is never lost on a frame that runs zero
    * fixed steps (high-refresh displays).
    */
   jumpQueued: boolean;
-  // edges — true for exactly one frame on press
+  // edges - true for exactly one frame on press
   reloadPressed: boolean;
   interactPressed: boolean;
   /** 1/2/3 if a weapon slot was pressed this frame, else 0. */
@@ -99,7 +99,7 @@ export const TEST_MODE =
  * Captures keyboard + mouse, maps to logical actions, and writes the shared
  * `input` snapshot + look angles. Edges are derived by diffing held-state
  * against the previous frame, so each "pressed" is true for one frame and self-
- * clears — no manual consumption needed. Runs first in the pipeline.
+ * clears - no manual consumption needed. Runs first in the pipeline.
  */
 export class InputSystem implements GameModule {
   readonly id = "system.input";

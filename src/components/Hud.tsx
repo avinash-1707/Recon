@@ -12,7 +12,7 @@ const WARN = "#f0a04c";
 const DANGER = "#e84a4a";
 const SHADOW = "0 1px 3px rgba(0,0,0,0.9)";
 
-/** Minimal top-center detection cue — only asserts itself once suspicious. */
+/** Minimal top-center detection cue - only asserts itself once suspicious. */
 function DetectionMeter() {
   const detection = useHudStore((s) => s.detection);
   const alert = useHudStore((s) => s.alert);

@@ -6,7 +6,7 @@ import { FixedClock } from "./clock";
  * (systems + entities). Each frame it advances logic in fixed slices, then runs
  * a variable per-frame pass with the interpolation alpha.
  *
- * Modules can register before OR after `init` — late registrations are inited
+ * Modules can register before OR after `init` - late registrations are inited
  * on the spot using the stored context, so React entities can attach as they
  * mount without caring about engine boot order.
  */
@@ -58,7 +58,7 @@ export class Engine {
       for (const m of this.modules) m.fixedUpdate?.(dt);
     });
 
-    // Variable per-frame pass — camera smoothing, visual interpolation.
+    // Variable per-frame pass - camera smoothing, visual interpolation.
     const alpha = this.clock.alpha;
     for (const m of this.modules) m.update(rawDt, alpha);
   }

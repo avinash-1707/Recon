@@ -36,12 +36,12 @@ export interface GameContext {
  * all the same way and tears them down deterministically.
  */
 export interface GameModule {
-  /** Unique id — used for registration dedupe and targeted unregister. */
+  /** Unique id - used for registration dedupe and targeted unregister. */
   readonly id: string;
 
   /**
-   * Update order (ascending). Lets us pin the pipeline — input → controllers →
-   * weapons/ai → camera — independent of React mount order. Default 0.
+   * Update order (ascending). Lets us pin the pipeline - input → controllers →
+   * weapons/ai → camera - independent of React mount order. Default 0.
    */
   readonly order?: number;
 
@@ -49,7 +49,7 @@ export interface GameModule {
   init(ctx: GameContext): void;
 
   /**
-   * Deterministic step at fixed `dt` seconds. Optional — implement only for
+   * Deterministic step at fixed `dt` seconds. Optional - implement only for
    * logic that must be framerate-independent (integration, AI ticks, timers).
    */
   fixedUpdate?(dt: number): void;

@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 /**
- * Typed level data — spawn points and AI patrol routes for the town map.
+ * Typed level data - spawn points and AI patrol routes for the town map.
  * Consumed by the player entity and the enemy spawner.
  */
 

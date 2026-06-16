@@ -24,7 +24,7 @@ const _q = new THREE.Quaternion();
 const _zAxis = new THREE.Vector3(0, 0, 1);
 
 /**
- * Pooled gunfire FX — tracers, muzzle flashes, and a shared flash point light.
+ * Pooled gunfire FX - tracers, muzzle flashes, and a shared flash point light.
  * Everything is pre-allocated; firing only flips a slot active and sets a
  * transform. Spawned by WeaponSystem, faded out here. Runs late so it advances
  * the FX requested earlier this frame.

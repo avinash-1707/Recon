@@ -10,10 +10,10 @@ import { WeaponType } from "@/game/weapons/types";
  */
 export interface WeaponModel {
   group: THREE.Group;
-  slide: THREE.Group; // slide / bolt / charging handle — travels back on fire
-  mag: THREE.Group; // magazine — drops + swaps on reload
+  slide: THREE.Group; // slide / bolt / charging handle - travels back on fire
+  mag: THREE.Group; // magazine - drops + swaps on reload
   muzzle: THREE.Object3D; // muzzle tip anchor (world pos for tracer/flash)
-  /** Local position of the aiming optic/sight — used to center it on ADS. */
+  /** Local position of the aiming optic/sight - used to center it on ADS. */
   sightOffset: THREE.Vector3;
   dispose(): void;
 }

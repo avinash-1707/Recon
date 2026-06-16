@@ -8,7 +8,7 @@ const EngineContext = createContext<Engine | null>(null);
 
 /**
  * Provides a single stable Engine instance to the subtree. Must live INSIDE
- * <Canvas> — r3f does not bridge React context across the canvas boundary.
+ * <Canvas> - r3f does not bridge React context across the canvas boundary.
  */
 export function EngineProvider({ children }: { children: ReactNode }) {
   const ref = useRef<Engine | null>(null);

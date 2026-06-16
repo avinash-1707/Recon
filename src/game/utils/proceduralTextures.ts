@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 /**
- * Procedural CC0-free textures generated on a 2D canvas — no asset downloads,
+ * Procedural CC0-free textures generated on a 2D canvas - no asset downloads,
  * deterministic enough, cheap. Client-only (needs `document`); guarded so any
  * accidental SSR import returns a blank texture instead of throwing.
  */
@@ -141,7 +141,7 @@ export function makeBrickTexture(): THREE.Texture {
   return tile(new THREE.CanvasTexture(c), 3, 2);
 }
 
-/** Irregular dark-red blood splatter with a transparent falloff — for ground decals. */
+/** Irregular dark-red blood splatter with a transparent falloff - for ground decals. */
 export function makeBloodTexture(): THREE.Texture {
   const made = canvas(256);
   if (!made) return new THREE.Texture();

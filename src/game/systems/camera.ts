@@ -7,7 +7,7 @@ const tmpCenter = new THREE.Vector3();
 
 /**
  * First-person camera. Anchors to the interpolated player eye and applies
- * mouse-look yaw/pitch. (First-person only — third person was removed.)
+ * mouse-look yaw/pitch. (First-person only - third person was removed.)
  */
 export class CameraSystem implements GameModule {
   readonly id = "system.camera";
@@ -17,7 +17,7 @@ export class CameraSystem implements GameModule {
 
   init(ctx: GameContext): void {
     this.cam = ctx.camera;
-    this.cam.rotation.order = "YXZ"; // yaw then pitch — no roll/gimbal surprises
+    this.cam.rotation.order = "YXZ"; // yaw then pitch - no roll/gimbal surprises
   }
 
   update(_dt: number, alpha: number): void {

@@ -14,7 +14,7 @@ export class FixedClock {
 
   /**
    * @param fixedDt    seconds per logic step (default 1/60)
-   * @param maxSubSteps cap on steps per frame — prevents the "spiral of death"
+   * @param maxSubSteps cap on steps per frame - prevents the "spiral of death"
    *                    after a stall or backgrounded tab (huge rawDt).
    */
   constructor(

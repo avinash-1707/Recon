@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Recon — Stealth FPS",
+  title: "Recon - Stealth FPS",
   description: "Browser-based stealth FPS prototype. Next.js + Three.js + Rapier.",
 };
 

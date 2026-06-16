@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 /**
- * Town building grid — single source of truth shared by the level renderer,
+ * Town building grid - single source of truth shared by the level renderer,
  * pickups, and respawn. 5×5 grid minus the central plus (plaza + street stubs).
  */
 export interface Plot {
@@ -30,7 +30,7 @@ export const PLOTS: ReadonlyArray<Plot> = (() => {
   return out;
 })();
 
-/** Centres of the houses (not warehouses) — interior-safe spawn/pickup spots. */
+/** Centres of the houses (not warehouses) - interior-safe spawn/pickup spots. */
 export const HOUSE_POSITIONS: ReadonlyArray<THREE.Vector3> = PLOTS.filter((p) => p.kind !== 2).map(
   (p) => new THREE.Vector3(p.x, 0, p.z),
 );

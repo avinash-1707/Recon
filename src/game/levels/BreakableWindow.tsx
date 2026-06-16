@@ -17,7 +17,7 @@ const T = 0.06;
 
 /**
  * Translucent, see-through glass filling a wall opening. Has a thin collider
- * registered as hittable — shooting it shatters the pane (mesh + collider
+ * registered as hittable - shooting it shatters the pane (mesh + collider
  * removed), opening a hole you can then see and shoot through.
  */
 export function BreakableWindow({ position, width, height, facing }: Props) {

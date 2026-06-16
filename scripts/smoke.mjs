@@ -65,7 +65,7 @@ await page.screenshot({ path: OUT });
 await wait(300);
 await page.mouse.up();
 
-// reload (let it fully finish before switching — switch is locked during reload)
+// reload (let it fully finish before switching - switch is locked during reload)
 await page.keyboard.press("KeyR");
 await wait(2000);
 

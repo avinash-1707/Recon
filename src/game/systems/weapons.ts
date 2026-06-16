@@ -21,7 +21,7 @@ const _dir = new THREE.Vector3();
 /**
  * Drives firing: reads input, runs the weapon FSM (fire/reload/ADS/switch),
  * performs hitscan, applies recoil to look, spawns pooled FX, and syncs ammo +
- * camera FOV. Logic only — the viewmodel reads `weaponRuntime` for visuals.
+ * camera FOV. Logic only - the viewmodel reads `weaponRuntime` for visuals.
  */
 export class WeaponSystem implements GameModule {
   readonly id = "system.weapons";
@@ -86,7 +86,7 @@ export class WeaponSystem implements GameModule {
     this.prevFire = input.fire;
 
     if (def.melee) {
-      // swing on click — no ammo, no reload
+      // swing on click - no ammo, no reload
       if (fireEdge && this.fsm.canFire && this.fsm.fire()) {
         this.audio.playMelee();
         this.meleeAttack(cam, world, def);
@@ -157,7 +157,7 @@ export class WeaponSystem implements GameModule {
     }
   }
 
-  /** Short-range melee swing — hitscan only, no recoil/tracer/flash. */
+  /** Short-range melee swing - hitscan only, no recoil/tracer/flash. */
   private meleeAttack(cam: THREE.PerspectiveCamera, world: World, def: WeaponDef): void {
     cam.getWorldPosition(_origin);
     cam.getWorldDirection(_dir);

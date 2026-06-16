@@ -9,7 +9,7 @@ interface Placed {
   yaw: number;
 }
 
-// Deterministic layout — clusters of cover around the compound.
+// Deterministic layout - clusters of cover around the compound.
 const CRATES: ReadonlyArray<Placed> = [
   { pos: [-8, 0.45, -4], yaw: 0.2 },
   { pos: [-8.95, 0.45, -4], yaw: -0.1 },
@@ -48,7 +48,7 @@ const BARRIERS: ReadonlyArray<Placed> = [
 
 const CRATE = 0.9;
 
-/** Wooden crates — one InstancedMesh draw call, individual cuboid colliders. */
+/** Wooden crates - one InstancedMesh draw call, individual cuboid colliders. */
 function Crates() {
   return (
     <>
@@ -68,7 +68,7 @@ function Crates() {
   );
 }
 
-/** Steel drums — instanced cylinders + cylinder colliders. */
+/** Steel drums - instanced cylinders + cylinder colliders. */
 function Barrels() {
   return (
     <>

@@ -46,7 +46,7 @@ export class WeaponFSM {
     return this.action !== WeaponAction.Reloading && this.cooldown <= 0;
   }
 
-  /** Swap to a new weapon — resets state and plays the raise. */
+  /** Swap to a new weapon - resets state and plays the raise. */
   setDef(def: WeaponDef): void {
     this.def = def;
     this.action = WeaponAction.Idle;

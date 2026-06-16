@@ -7,7 +7,7 @@ export interface ShotHit {
   hit: boolean;
   /** World-space hit point (or ray end if no hit). */
   point: THREE.Vector3;
-  /** Collider struck (null on miss) — resolve to a rigid body / enemy. */
+  /** Collider struck (null on miss) - resolve to a rigid body / enemy. */
   collider: Collider | null;
   /** Distance to hit (or maxDist on miss). */
   distance: number;
