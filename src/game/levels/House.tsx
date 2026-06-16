@@ -4,6 +4,7 @@ import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { RigidBody, CuboidCollider } from "@react-three/rapier";
 import { MAT } from "@/game/levels/materials";
+import { BreakableWindow } from "@/game/levels/BreakableWindow";
 
 export interface HouseProps {
   position: [number, number, number];
@@ -11,156 +12,214 @@ export interface HouseProps {
   storeys?: 1 | 2;
   width?: number;
   depth?: number;
-  /** Alt plaster colour for variety. */
   alt?: boolean;
 }
 
-const STOREY_H = 2.7;
+const STOREY_H = 2.8;
 const WALL_T = 0.25;
 const PLINTH_H = 0.35;
 const DOOR_W = 1.1;
 const DOOR_H = 2.1;
 const EAVE = 0.45;
+const SILL = 1.0; // window sill height above each storey floor
+const WW = 1.5; // window opening width
+const WH = 1.3; // window opening height
+const FLOOR_T = 0.2;
 
-function Box({
-  size,
-  position,
-  material,
-  rotation,
-}: {
-  size: [number, number, number];
-  position: [number, number, number];
-  material: THREE.Material;
-  rotation?: [number, number, number];
-}) {
-  return (
-    <mesh position={position} rotation={rotation} material={material} castShadow receiveShadow>
-      <boxGeometry args={size} />
-    </mesh>
-  );
+interface Seg {
+  s: [number, number, number];
+  p: [number, number, number];
+  mat: THREE.Material;
 }
-
-/** Framed punched window with glass, on a Z-facing or X-facing wall. */
-function Win({
-  pos,
-  facing,
-  w = 0.95,
-  h = 1.15,
-}: {
+interface Win {
   pos: [number, number, number];
   facing: "z" | "x";
-  w?: number;
-  h?: number;
-}) {
-  const frame: [number, number, number] = facing === "z" ? [w + 0.18, h + 0.18, 0.1] : [0.1, h + 0.18, w + 0.18];
-  const glass: [number, number, number] = facing === "z" ? [w, h, 0.05] : [0.05, h, w];
-  return (
-    <group position={pos}>
-      <Box size={frame} position={[0, 0, 0]} material={MAT.woodTrim} />
-      <Box size={glass} position={[0, 0, 0]} material={MAT.glass} />
-    </group>
-  );
 }
 
 /**
- * PUBG-style rural house: stone plinth, plastered walls, framed windows, a
- * front door (passable), a pitched gable roof with eaves + ridge cap, a
- * chimney, and (for 2-storey) a mid trim band. Perimeter wall colliders leave
- * the doorway open; a ceiling collider caps the room.
+ * Detailed PUBG-style house: textured plastered walls with real window
+ * OPENINGS filled by breakable translucent glass, a front door, a textured
+ * gable roof shallow enough to stand on (with slope colliders), a chimney, and
+ * — for 2-storey — an upper floor reached by an interior staircase.
  */
-export function House({ position, rotationY = 0, storeys = 1, width = 7, depth = 6, alt = false }: HouseProps) {
+export function House({ position, rotationY = 0, storeys = 1, width = 8, depth = 7, alt = false }: HouseProps) {
+  const W = width;
+  const D = depth;
   const H = storeys * STOREY_H;
   const floorY = PLINTH_H;
   const wallTop = floorY + H;
-  const halfW = width / 2;
+  const halfW = W / 2;
   const halfD = depth / 2;
   const wallMat = alt ? MAT.plasterAlt : MAT.plaster;
 
-  const ridgeRise = Math.min(width, depth) * 0.42;
+  const ridgeRise = Math.min(W, D) * 0.3; // shallow → standable
   const ridgeY = wallTop + ridgeRise;
   const halfDe = halfD + EAVE;
   const slopeLen = Math.hypot(halfDe, ridgeRise);
   const theta = Math.atan2(ridgeRise, halfDe);
-  const roofW = width + 2 * EAVE;
-  const wy = floorY + H / 2;
-  const sideW = (width - DOOR_W) / 2;
+  const roofW = W + 2 * EAVE;
 
-  // gable end triangles (both ends) as one geometry
+  // ---- build wall segments + window openings ----
+  const { walls, decor, windows, stairs } = useMemo(() => {
+    const walls: Seg[] = [];
+    const decor: Seg[] = [];
+    const windows: Win[] = [];
+    const zb = halfD - WALL_T / 2;
+    const xb = halfW - WALL_T / 2;
+    const headerH = STOREY_H - (SILL + WH);
+    const pillarW = (W - WW) / 2;
+    const pillarD = (D - WW) / 2;
+
+    const windowWallX = (zc: number, base: number) => {
+      // wall spanning X at z=zc, central window
+      walls.push({ s: [W, SILL, WALL_T], p: [0, base + SILL / 2, zc], mat: wallMat });
+      walls.push({ s: [W, headerH, WALL_T], p: [0, base + SILL + WH + headerH / 2, zc], mat: wallMat });
+      walls.push({ s: [pillarW, WH, WALL_T], p: [-(W / 2 - pillarW / 2), base + SILL + WH / 2, zc], mat: wallMat });
+      walls.push({ s: [pillarW, WH, WALL_T], p: [W / 2 - pillarW / 2, base + SILL + WH / 2, zc], mat: wallMat });
+      decor.push({ s: [WW + 0.2, 0.1, WALL_T + 0.08], p: [0, base + SILL, zc], mat: MAT.woodTrim }); // sill ledge
+      windows.push({ pos: [0, base + SILL + WH / 2, zc], facing: "z" });
+    };
+    const windowWallZ = (xc: number, base: number) => {
+      walls.push({ s: [WALL_T, SILL, D], p: [xc, base + SILL / 2, 0], mat: wallMat });
+      walls.push({ s: [WALL_T, headerH, D], p: [xc, base + SILL + WH + headerH / 2, 0], mat: wallMat });
+      walls.push({ s: [WALL_T, WH, pillarD], p: [xc, base + SILL + WH / 2, -(D / 2 - pillarD / 2)], mat: wallMat });
+      walls.push({ s: [WALL_T, WH, pillarD], p: [xc, base + SILL + WH / 2, D / 2 - pillarD / 2], mat: wallMat });
+      decor.push({ s: [WALL_T + 0.08, 0.1, WW + 0.2], p: [xc, base + SILL, 0], mat: MAT.woodTrim });
+      windows.push({ pos: [xc, base + SILL + WH / 2, 0], facing: "x" });
+    };
+
+    for (let s = 0; s < storeys; s++) {
+      const base = floorY + s * STOREY_H;
+      windowWallX(-zb, base); // back
+      windowWallZ(-xb, base); // left
+      windowWallZ(xb, base); // right
+      if (s === 0) {
+        // front ground: doorway
+        const sideW = (W - DOOR_W) / 2;
+        walls.push({ s: [sideW, STOREY_H, WALL_T], p: [-(W / 2 - sideW / 2), base + STOREY_H / 2, zb], mat: wallMat });
+        walls.push({ s: [sideW, STOREY_H, WALL_T], p: [W / 2 - sideW / 2, base + STOREY_H / 2, zb], mat: wallMat });
+        walls.push({ s: [DOOR_W, STOREY_H - DOOR_H, WALL_T], p: [0, base + DOOR_H + (STOREY_H - DOOR_H) / 2, zb], mat: wallMat });
+        decor.push({ s: [DOOR_W, DOOR_H, 0.08], p: [0, base + DOOR_H / 2, zb], mat: MAT.doorWood });
+        decor.push({ s: [DOOR_W + 0.2, DOOR_H + 0.12, 0.12], p: [0, base + DOOR_H / 2, zb - WALL_T + 0.04], mat: MAT.woodTrim });
+      } else {
+        windowWallX(zb, base); // front upper window
+      }
+    }
+
+    // upper floor + stairwell (2-storey)
+    const stairs: Seg[] = [];
+    if (storeys === 2) {
+      const innerW = W - 2 * WALL_T;
+      const innerD = D - 2 * WALL_T;
+      const SW = 1.9; // stairwell width (along X, left side)
+      const SD = 3.4; // stairwell depth (along Z, back side)
+      const fy = floorY + STOREY_H;
+      const x0 = -halfW + WALL_T; // inner left edge
+      const z0 = -halfD + WALL_T; // inner back edge
+      // floor: main slab (right of stairwell) + left-front strip
+      walls.push({ s: [innerW - SW, FLOOR_T, innerD], p: [x0 + SW + (innerW - SW) / 2, fy, 0], mat: MAT.woodTrim });
+      walls.push({ s: [SW, FLOOR_T, innerD - SD], p: [x0 + SW / 2, fy, z0 + SD + (innerD - SD) / 2], mat: MAT.woodTrim });
+      // staircase ramp collider + visual steps (back→front rise within stairwell)
+      const rampLen = Math.hypot(SD, STOREY_H);
+      stairs.push({
+        s: [SW, 0.3, rampLen],
+        p: [x0 + SW / 2, floorY + STOREY_H / 2, z0 + SD / 2],
+        mat: wallMat,
+      });
+      const steps = 9;
+      for (let i = 0; i < steps; i++) {
+        const f = i / steps;
+        decor.push({
+          s: [SW * 0.9, 0.16, SD / steps + 0.04],
+          p: [x0 + SW / 2, floorY + f * STOREY_H + 0.08, z0 + (i + 0.5) * (SD / steps)],
+          mat: MAT.stoneBase,
+        });
+      }
+      return { walls, decor, windows, stairs };
+    }
+
+    return { walls, decor, windows, stairs };
+  }, [W, D, storeys, wallMat, floorY, halfW, halfD]);
+
+  // gable end triangles
   const gableGeo = useMemo(() => {
     const g = new THREE.BufferGeometry();
-    const verts = new Float32Array([
-      halfW, wallTop, -halfD, halfW, wallTop, halfD, halfW, ridgeY, 0,
-      -halfW, wallTop, halfD, -halfW, wallTop, -halfD, -halfW, ridgeY, 0,
-    ]);
-    g.setAttribute("position", new THREE.BufferAttribute(verts, 3));
+    g.setAttribute(
+      "position",
+      new THREE.BufferAttribute(
+        new Float32Array([
+          halfW, wallTop, -halfD, halfW, wallTop, halfD, halfW, ridgeY, 0,
+          -halfW, wallTop, halfD, -halfW, wallTop, -halfD, -halfW, ridgeY, 0,
+        ]),
+        3,
+      ),
+    );
     g.computeVertexNormals();
     return g;
   }, [halfW, halfD, wallTop, ridgeY]);
   useEffect(() => () => gableGeo.dispose(), [gableGeo]);
 
-  const winYs = storeys === 2 ? [floorY + 1.3, floorY + STOREY_H + 1.3] : [floorY + 1.4];
-
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       {/* plinth */}
-      <Box size={[width + 0.4, PLINTH_H, depth + 0.4]} position={[0, PLINTH_H / 2, 0]} material={MAT.stoneBase} />
+      <mesh position={[0, PLINTH_H / 2, 0]} material={MAT.stoneBase} castShadow receiveShadow>
+        <boxGeometry args={[W + 0.4, PLINTH_H, D + 0.4]} />
+      </mesh>
 
-      {/* walls */}
-      <Box size={[width, H, WALL_T]} position={[0, wy, -(halfD - WALL_T / 2)]} material={wallMat} />
-      <Box size={[WALL_T, H, depth]} position={[-(halfW - WALL_T / 2), wy, 0]} material={wallMat} />
-      <Box size={[WALL_T, H, depth]} position={[halfW - WALL_T / 2, wy, 0]} material={wallMat} />
-      {/* front with doorway */}
-      <Box size={[sideW, H, WALL_T]} position={[-(halfW - sideW / 2), wy, halfD - WALL_T / 2]} material={wallMat} />
-      <Box size={[sideW, H, WALL_T]} position={[halfW - sideW / 2, wy, halfD - WALL_T / 2]} material={wallMat} />
-      <Box size={[DOOR_W, H - DOOR_H, WALL_T]} position={[0, floorY + DOOR_H + (H - DOOR_H) / 2, halfD - WALL_T / 2]} material={wallMat} />
-
-      {/* mid trim band (2-storey) */}
-      {storeys === 2 && (
-        <Box size={[width + 0.08, 0.16, depth + 0.08]} position={[0, floorY + STOREY_H, 0]} material={MAT.woodTrim} />
-      )}
-
-      {/* door */}
-      <Box size={[DOOR_W, DOOR_H, 0.08]} position={[0, floorY + DOOR_H / 2, halfD - 0.02]} material={MAT.doorWood} />
-      <Box size={[DOOR_W + 0.18, DOOR_H + 0.12, 0.12]} position={[0, floorY + DOOR_H / 2, halfD - WALL_T + 0.04]} material={MAT.woodTrim} />
-
-      {/* windows */}
-      {winYs.map((y, i) => (
-        <group key={i}>
-          <Win pos={[-width * 0.28, y, halfD - 0.02]} facing="z" />
-          {y > floorY + STOREY_H ? <Win pos={[width * 0.28, y, halfD - 0.02]} facing="z" /> : null}
-          <Win pos={[-width * 0.22, y, -(halfD - 0.02)]} facing="z" />
-          <Win pos={[width * 0.22, y, -(halfD - 0.02)]} facing="z" />
-          <Win pos={[-(halfW - 0.02), y, -depth * 0.2]} facing="x" />
-          <Win pos={[halfW - 0.02, y, depth * 0.2]} facing="x" />
-        </group>
+      {/* wall + floor segments (visual) */}
+      {walls.map((g, i) => (
+        <mesh key={`w${i}`} position={g.p} material={g.mat} castShadow receiveShadow>
+          <boxGeometry args={g.s} />
+        </mesh>
+      ))}
+      {/* decor (no collider) */}
+      {decor.map((g, i) => (
+        <mesh key={`d${i}`} position={g.p} material={g.mat} castShadow receiveShadow>
+          <boxGeometry args={g.s} />
+        </mesh>
+      ))}
+      {/* staircase visual ramp underlay */}
+      {stairs.map((g, i) => (
+        <mesh key={`s${i}`} position={g.p} rotation={[-Math.atan2(STOREY_H, 3.4), 0, 0]} material={g.mat}>
+          <boxGeometry args={g.s} />
+        </mesh>
       ))}
 
-      {/* roof slopes + ridge + gables */}
+      {/* breakable glass windows */}
+      {windows.map((w, i) => (
+        <BreakableWindow key={`g${i}`} position={w.pos} width={WW} height={WH} facing={w.facing} />
+      ))}
+
+      {/* roof: shallow gable (standable) + ridge + gable ends */}
       <mesh position={[0, (wallTop + ridgeY) / 2, halfDe / 2]} rotation={[theta, 0, 0]} material={MAT.roofShingle} castShadow receiveShadow>
-        <boxGeometry args={[roofW, 0.14, slopeLen]} />
+        <boxGeometry args={[roofW, 0.16, slopeLen]} />
       </mesh>
       <mesh position={[0, (wallTop + ridgeY) / 2, -halfDe / 2]} rotation={[-theta, 0, 0]} material={MAT.roofShingle} castShadow receiveShadow>
-        <boxGeometry args={[roofW, 0.14, slopeLen]} />
+        <boxGeometry args={[roofW, 0.16, slopeLen]} />
       </mesh>
-      <Box size={[roofW, 0.18, 0.22]} position={[0, ridgeY + 0.03, 0]} material={MAT.roofShingle} />
+      <mesh position={[0, ridgeY + 0.04, 0]} material={MAT.roofShingle}>
+        <boxGeometry args={[roofW, 0.2, 0.24]} />
+      </mesh>
       <mesh geometry={gableGeo} castShadow receiveShadow>
-        <meshStandardMaterial color={alt ? "#b08d6a" : "#c7bfa6"} roughness={0.95} side={THREE.DoubleSide} />
+        <meshStandardMaterial color={alt ? "#b89878" : "#c7bfa6"} roughness={0.95} side={THREE.DoubleSide} />
       </mesh>
 
       {/* chimney */}
-      <Box size={[0.5, ridgeRise + 0.9, 0.5]} position={[halfW * 0.45, wallTop + ridgeRise * 0.5, -halfD * 0.25]} material={MAT.chimney} />
-      <Box size={[0.66, 0.18, 0.66]} position={[halfW * 0.45, wallTop + ridgeRise + 0.4, -halfD * 0.25]} material={MAT.stoneBase} />
+      <mesh position={[halfW * 0.45, wallTop + ridgeRise * 0.5, -halfD * 0.25]} material={MAT.chimney} castShadow>
+        <boxGeometry args={[0.5, ridgeRise + 0.9, 0.5]} />
+      </mesh>
 
-      {/* colliders (doorway open, ceiling capped) */}
+      {/* colliders: wall/floor/stair segments + plinth + standable roof slopes */}
       <RigidBody type="fixed" colliders={false}>
-        <CuboidCollider args={[(width + 0.4) / 2, PLINTH_H / 2, (depth + 0.4) / 2]} position={[0, PLINTH_H / 2, 0]} />
-        <CuboidCollider args={[width / 2, H / 2, WALL_T / 2]} position={[0, wy, -(halfD - WALL_T / 2)]} />
-        <CuboidCollider args={[WALL_T / 2, H / 2, depth / 2]} position={[-(halfW - WALL_T / 2), wy, 0]} />
-        <CuboidCollider args={[WALL_T / 2, H / 2, depth / 2]} position={[halfW - WALL_T / 2, wy, 0]} />
-        <CuboidCollider args={[sideW / 2, H / 2, WALL_T / 2]} position={[-(halfW - sideW / 2), wy, halfD - WALL_T / 2]} />
-        <CuboidCollider args={[sideW / 2, H / 2, WALL_T / 2]} position={[halfW - sideW / 2, wy, halfD - WALL_T / 2]} />
-        <CuboidCollider args={[DOOR_W / 2, (H - DOOR_H) / 2, WALL_T / 2]} position={[0, floorY + DOOR_H + (H - DOOR_H) / 2, halfD - WALL_T / 2]} />
-        <CuboidCollider args={[halfW, 0.15, halfD]} position={[0, wallTop, 0]} />
+        <CuboidCollider args={[(W + 0.4) / 2, PLINTH_H / 2, (D + 0.4) / 2]} position={[0, PLINTH_H / 2, 0]} />
+        {walls.map((g, i) => (
+          <CuboidCollider key={i} args={[g.s[0] / 2, g.s[1] / 2, g.s[2] / 2]} position={g.p} />
+        ))}
+        {stairs.map((g, i) => (
+          <CuboidCollider key={`sc${i}`} args={[g.s[0] / 2, g.s[1] / 2, g.s[2] / 2]} position={g.p} rotation={[-Math.atan2(STOREY_H, 3.4), 0, 0]} />
+        ))}
+        <CuboidCollider args={[roofW / 2, 0.08, slopeLen / 2]} position={[0, (wallTop + ridgeY) / 2, halfDe / 2]} rotation={[theta, 0, 0]} />
+        <CuboidCollider args={[roofW / 2, 0.08, slopeLen / 2]} position={[0, (wallTop + ridgeY) / 2, -halfDe / 2]} rotation={[-theta, 0, 0]} />
       </RigidBody>
     </group>
   );

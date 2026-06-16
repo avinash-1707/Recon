@@ -27,6 +27,8 @@ export interface PlayerRuntime {
   sprinting: boolean;
   /** Pending teleport target (respawn) — consumed by the controller. */
   teleport: THREE.Vector3 | null;
+  /** Pending upward launch velocity (jump pad) — consumed by the controller. */
+  launch: number;
 }
 
 export const playerRuntime: PlayerRuntime = {
@@ -40,6 +42,7 @@ export const playerRuntime: PlayerRuntime = {
   crouching: false,
   sprinting: false,
   teleport: null,
+  launch: 0,
 };
 
 /**

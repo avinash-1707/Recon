@@ -1,4 +1,9 @@
 import * as THREE from "three";
+import { makePlasterTexture, makeRoofTexture, makeBrickTexture } from "@/game/utils/proceduralTextures";
+
+const plasterTex = makePlasterTexture();
+const roofTex = makeRoofTexture();
+const brickTex = makeBrickTexture();
 
 /**
  * Shared PBR materials for the level. Reused across many meshes to keep GPU
@@ -25,16 +30,28 @@ export const MAT = {
   barrel: new THREE.MeshStandardMaterial({ color: "#3f6e4a", roughness: 0.5, metalness: 0.45 }),
   barrier: new THREE.MeshStandardMaterial({ color: "#9a9690", roughness: 0.9, metalness: 0.03 }),
   ductMetal: new THREE.MeshStandardMaterial({ color: "#6a6f74", roughness: 0.45, metalness: 0.6 }),
-  // house materials
-  plaster: new THREE.MeshStandardMaterial({ color: "#c7bfa6", roughness: 0.95, metalness: 0.0 }),
-  plasterAlt: new THREE.MeshStandardMaterial({ color: "#b08d6a", roughness: 0.95, metalness: 0.0 }),
-  roofShingle: new THREE.MeshStandardMaterial({ color: "#5a2f28", roughness: 0.85, metalness: 0.05 }),
+  // house materials (procedural texture maps for surface detail)
+  plaster: new THREE.MeshStandardMaterial({ color: "#c7bfa6", map: plasterTex, roughness: 0.95, metalness: 0.0 }),
+  plasterAlt: new THREE.MeshStandardMaterial({ color: "#b89878", map: plasterTex, roughness: 0.95, metalness: 0.0 }),
+  roofShingle: new THREE.MeshStandardMaterial({ color: "#ffffff", map: roofTex, roughness: 0.85, metalness: 0.05 }),
   woodTrim: new THREE.MeshStandardMaterial({ color: "#e6dfce", roughness: 0.7, metalness: 0.0 }),
   doorWood: new THREE.MeshStandardMaterial({ color: "#5a3b22", roughness: 0.7, metalness: 0.05 }),
-  stoneBase: new THREE.MeshStandardMaterial({ color: "#5b554c", roughness: 0.95, metalness: 0.02 }),
-  chimney: new THREE.MeshStandardMaterial({ color: "#7a4a3a", roughness: 0.9, metalness: 0.03 }),
+  stoneBase: new THREE.MeshStandardMaterial({ color: "#ffffff", map: brickTex, roughness: 0.95, metalness: 0.02 }),
+  chimney: new THREE.MeshStandardMaterial({ color: "#ffffff", map: brickTex, roughness: 0.9, metalness: 0.03 }),
+  windowGlass: new THREE.MeshStandardMaterial({
+    color: "#bfe9ff",
+    roughness: 0.05,
+    metalness: 0.1,
+    transparent: true,
+    opacity: 0.22,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  }),
 } as const;
 
 export function disposeLevelMaterials(): void {
   for (const m of Object.values(MAT)) m.dispose();
+  plasterTex.dispose();
+  roofTex.dispose();
+  brickTex.dispose();
 }

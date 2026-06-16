@@ -109,11 +109,14 @@ export class PlayerController implements GameModule {
     vel.z += (tmpMove.z * speed - vel.z) * k;
     playerRuntime.sprinting = sprint && this.grounded && tmpMove.lengthSq() > 0.01;
 
-    // Vertical: reset on ground, jump latch, gravity.
+    // Vertical: reset on ground, jump latch / jump pad, gravity.
     if (this.grounded && vel.y < 0) vel.y = 0;
     const wantJump = input.jumpQueued;
     input.jumpQueued = false;
     if (this.grounded && wantJump) vel.y = JUMP_SPEED;
+    const launch = playerRuntime.launch;
+    playerRuntime.launch = 0;
+    if (launch > 0 && this.grounded) vel.y = launch;
     vel.y += GRAVITY * dt;
 
     // Resolve against the world via the character controller.
