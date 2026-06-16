@@ -46,18 +46,31 @@ function RemotePlayer({ id }: { id: string }) {
   const model = useMemo(() => cloneSkinned(gltf.scene), [gltf.scene]);
 
   useEffect(() => {
-    const body = bodyRef.current;
-    if (!body || body.numColliders() === 0) return;
-    const handle = body.collider(0).handle;
-    const onHit = (damage: number, point: THREE.Vector3): HitInfo => {
-      const headshot = point.y > body.translation().y + HEADSHOT_OVER_CENTER;
-      getSocket().emit("hit", { targetId: id, damage, headshot });
-      // killed is unknown locally — the victim decides death; report a body/head
-      // hitmarker only.
-      return { headshot, killed: false };
+    let handle: number | null = null;
+    let raf = 0;
+    // The collider attaches a tick after mount; retry until it exists so a peer
+    // is never left permanently non-hittable.
+    const register = () => {
+      const body = bodyRef.current;
+      if (!body || body.numColliders() === 0) {
+        raf = requestAnimationFrame(register);
+        return;
+      }
+      handle = body.collider(0).handle;
+      const onHit = (damage: number, point: THREE.Vector3): HitInfo => {
+        const headshot = point.y > body.translation().y + HEADSHOT_OVER_CENTER;
+        getSocket().emit("hit", { targetId: id, damage, headshot });
+        // killed is unknown locally — the victim decides death; report a
+        // body/head hitmarker only.
+        return { headshot, killed: false };
+      };
+      registerHittable(handle, onHit);
     };
-    registerHittable(handle, onHit);
-    return () => unregisterHittable(handle);
+    register();
+    return () => {
+      cancelAnimationFrame(raf);
+      if (handle !== null) unregisterHittable(handle);
+    };
   }, [id]);
 
   useFrame((_, dt) => {

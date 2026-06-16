@@ -1,4 +1,9 @@
-import type { CreateRoomResponse, JoinAck } from "@recon/protocol";
+import type {
+  CreateRoomResponse,
+  JoinAck,
+  PlayerMeta,
+  RoomState,
+} from "@recon/protocol";
 import { useNetStore } from "@/game/state/netStore";
 import { disconnectSocket, getSocket, SERVER_URL, type GameSocket } from "./socket";
 import { clearPeers, removePeer } from "./remotePeers";
@@ -12,24 +17,52 @@ import { clearPeers, removePeer } from "./remotePeers";
  * user-facing message) on failure — the caller shows it.
  */
 
-let wired = false;
+interface LobbyHandlers {
+  roomState: (state: RoomState) => void;
+  playerJoined: (player: PlayerMeta) => void;
+  playerLeft: (id: string) => void;
+  scoreUpdate: (players: PlayerMeta[]) => void;
+  disconnect: () => void;
+}
+
+// Stored so we can remove them again on leave. The socket is a singleton reused
+// across sessions, so listeners MUST be torn down or they leak / double-fire.
+let lobbyHandlers: LobbyHandlers | null = null;
 
 function wireLobbyEvents(socket: GameSocket): void {
-  if (wired) return;
-  wired = true;
+  if (lobbyHandlers) return;
   const store = useNetStore.getState;
-  socket.on("roomState", (state) => store().setPlayers(state.players));
-  socket.on("playerJoined", (p) => store().upsertPlayer(p));
-  socket.on("playerLeft", (id) => {
-    store().removePlayer(id);
-    removePeer(id);
-  });
-  socket.on("scoreUpdate", (players) => store().setPlayers(players));
-  socket.on("disconnect", () => {
-    clearPeers();
-    if (store().phase !== "idle") store().setError("disconnected from server");
-    store().setPhase("idle");
-  });
+  const handlers: LobbyHandlers = {
+    roomState: (state) => store().setPlayers(state.players),
+    playerJoined: (player) => store().upsertPlayer(player),
+    playerLeft: (id) => {
+      store().removePlayer(id);
+      removePeer(id);
+    },
+    scoreUpdate: (players) => store().setPlayers(players),
+    disconnect: () => {
+      // Only reached for unintended drops — leaveRoom unwires first.
+      clearPeers();
+      if (store().phase !== "idle") store().setError("disconnected from server");
+      store().setPhase("idle");
+    },
+  };
+  socket.on("roomState", handlers.roomState);
+  socket.on("playerJoined", handlers.playerJoined);
+  socket.on("playerLeft", handlers.playerLeft);
+  socket.on("scoreUpdate", handlers.scoreUpdate);
+  socket.on("disconnect", handlers.disconnect);
+  lobbyHandlers = handlers;
+}
+
+function unwireLobbyEvents(socket: GameSocket): void {
+  if (!lobbyHandlers) return;
+  socket.off("roomState", lobbyHandlers.roomState);
+  socket.off("playerJoined", lobbyHandlers.playerJoined);
+  socket.off("playerLeft", lobbyHandlers.playerLeft);
+  socket.off("scoreUpdate", lobbyHandlers.scoreUpdate);
+  socket.off("disconnect", lobbyHandlers.disconnect);
+  lobbyHandlers = null;
 }
 
 function waitForConnect(socket: GameSocket, timeoutMs = 6000): Promise<void> {
@@ -114,6 +147,9 @@ export function startMatch(): void {
 /** Leave the room and tear the session down. */
 export function leaveRoom(): void {
   const socket = getSocket();
+  // Remove listeners BEFORE disconnecting so the disconnect handler doesn't
+  // fire its "disconnected from server" error on an intentional leave.
+  unwireLobbyEvents(socket);
   if (socket.connected) socket.emit("leaveRoom");
   disconnectSocket();
   clearPeers();

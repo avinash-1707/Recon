@@ -23,6 +23,8 @@ const _to = new THREE.Vector3();
 const _dir = new THREE.Vector3();
 const PEER_TRACER_RANGE = 60;
 const DEFAULT_TRACER = 0xffcf8f;
+/** Death beat before auto-respawn (the ELIMINATED overlay shows during it). */
+const RESPAWN_DELAY_S = 2.5;
 
 /**
  * Multiplayer relay glue (runs only in multiplayer mode). Sends the local
@@ -38,6 +40,7 @@ export class NetworkSystem implements GameModule {
   private accumMs = 0;
   private lastAttacker: string | null = null;
   private dead = false;
+  private respawnIn = 0;
   private fx: FxSystem | null = null;
   private unsubShot: (() => void) | null = null;
   private readonly offs: Array<() => void> = [];
@@ -79,17 +82,26 @@ export class NetworkSystem implements GameModule {
 
   update(dt: number): void {
     const health = usePlayerStore.getState().health;
-    if (health <= 0 && !this.dead) {
+    if (!this.dead && health <= 0) {
+      // Enter the death beat: emit once, then auto-respawn after a delay so the
+      // ELIMINATED overlay can show (no instant revive fighting the UI).
       this.dead = true;
-      this.handleDeath();
-    } else if (health > 0) {
-      this.dead = false;
+      this.respawnIn = RESPAWN_DELAY_S;
+      this.socket.emit("death", { killerId: this.lastAttacker });
+      this.lastAttacker = null;
+    }
+    if (this.dead) {
+      this.respawnIn -= dt;
+      if (this.respawnIn <= 0) this.respawn();
     }
 
     this.accumMs += dt * 1000;
     if (this.accumMs >= SNAPSHOT_INTERVAL_MS) {
-      this.accumMs = 0;
       this.sendSnapshot();
+      // Subtract one interval (don't zero) to hold a steady rate; drop the
+      // backlog after a long stall so we don't burst-send.
+      this.accumMs -= SNAPSHOT_INTERVAL_MS;
+      if (this.accumMs > SNAPSHOT_INTERVAL_MS) this.accumMs = 0;
     }
   }
 
@@ -120,17 +132,16 @@ export class NetworkSystem implements GameModule {
     this.fx.spawnMuzzleFlash(_from, color);
   }
 
-  private handleDeath(): void {
-    this.socket.emit("death", { killerId: this.lastAttacker });
+  private respawn(): void {
+    this.dead = false;
     usePlayerStore.getState().revive();
     useWeaponStore.getState().refillAmmo();
-    // Respawn at the spawn point with a small scatter so players don't stack.
+    // Spawn point with a small scatter so respawned players don't stack.
     playerRuntime.teleport = new THREE.Vector3(
       PLAYER_SPAWN.x + (Math.random() * 2 - 1) * 2,
       PLAYER_SPAWN.y,
       PLAYER_SPAWN.z + (Math.random() * 2 - 1) * 2,
     );
-    this.lastAttacker = null;
   }
 
   dispose(): void {

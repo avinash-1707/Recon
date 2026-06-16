@@ -5,6 +5,7 @@ import { usePlayerStore } from "@/game/state/playerStore";
 import { useWeaponStore } from "@/game/state/weaponStore";
 import { useHudStore, AlertLevel } from "@/game/state/hudStore";
 import { respawnPlayer } from "@/game/systems/respawn";
+import { useAppStore } from "@/game/state/appStore";
 import { WEAPONS } from "@/game/weapons/defs";
 
 const ACCENT = "#cfe0e6";
@@ -117,11 +118,15 @@ function DamageVignette() {
 
 function GameOver() {
   const health = usePlayerStore((s) => s.health);
+  const multiplayer = useAppStore((s) => s.mode === "multiplayer");
 
-  // Release the pointer lock on death so the cursor can click Redeploy.
+  // Single-player frees the cursor so the player can click Redeploy. Multiplayer
+  // auto-respawns (NetworkSystem) — keep the pointer lock so it's seamless.
   useEffect(() => {
-    if (health <= 0 && document.pointerLockElement) document.exitPointerLock();
-  }, [health]);
+    if (!multiplayer && health <= 0 && document.pointerLockElement) {
+      document.exitPointerLock();
+    }
+  }, [health, multiplayer]);
 
   if (health > 0) return null;
 
@@ -131,11 +136,17 @@ function GameOver() {
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 80, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "1rem", background: "rgba(5,7,10,0.78)", backdropFilter: "blur(3px)" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 80, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "1rem", background: "rgba(5,7,10,0.78)", backdropFilter: "blur(3px)", pointerEvents: multiplayer ? "none" : "auto" }}>
       <div style={{ fontSize: "2rem", letterSpacing: "0.35em", color: DANGER }}>ELIMINATED</div>
-      <button onClick={redeploy} style={{ marginTop: "0.5rem", padding: "0.6rem 1.6rem", fontSize: "0.7rem", letterSpacing: "0.2em", color: "#dfe8ec", background: "rgba(76,201,240,0.08)", border: "1px solid rgba(220,232,236,0.6)", cursor: "pointer" }}>
-        REDEPLOY
-      </button>
+      {multiplayer ? (
+        <div style={{ marginTop: "0.5rem", fontSize: "0.7rem", letterSpacing: "0.25em", color: "rgba(220,232,236,0.7)" }}>
+          RESPAWNING…
+        </div>
+      ) : (
+        <button onClick={redeploy} style={{ marginTop: "0.5rem", padding: "0.6rem 1.6rem", fontSize: "0.7rem", letterSpacing: "0.2em", color: "#dfe8ec", background: "rgba(76,201,240,0.08)", border: "1px solid rgba(220,232,236,0.6)", cursor: "pointer" }}>
+          REDEPLOY
+        </button>
+      )}
     </div>
   );
 }
