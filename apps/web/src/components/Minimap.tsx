@@ -20,12 +20,12 @@ const PEER_COLOR   = "#f04c4c";   // red blips for hostiles
 const LABEL_COLOR  = "rgba(215,226,230,0.45)";
 const CARDINAL_COLOR = "rgba(76,201,240,0.50)";
 
-/** Half the world radius used to map world-units → canvas pixels. */
-const WORLD_HALF = 48;
+/** Half the world radius used to map world-units → canvas pixels (perimeter ≈ 72). */
+const WORLD_HALF = 72;
 
-/** Building footprint half-sizes (metres). */
-const HOUSE_HALF  = 3.5;
-const WARE_HALF   = 4.5;
+/** Building footprint half-sizes (metres) — match true footprints. */
+const HOUSE_HALF  = 4.7;
+const WARE_HALF   = 5.0;
 
 // ─── Coordinate helpers ────────────────────────────────────────────────────────
 

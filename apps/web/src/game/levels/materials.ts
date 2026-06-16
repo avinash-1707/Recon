@@ -1,9 +1,17 @@
 import * as THREE from "three";
-import { makePlasterTexture, makeRoofTexture, makeBrickTexture } from "@/game/utils/proceduralTextures";
+import {
+  makePlasterTexture,
+  makeRoofTexture,
+  makeBrickTexture,
+  makeGrassTexture,
+  makeAsphaltTexture,
+} from "@/game/utils/proceduralTextures";
 
 const plasterTex = makePlasterTexture();
 const roofTex = makeRoofTexture();
 const brickTex = makeBrickTexture();
+const grassTex = makeGrassTexture();
+const asphaltTex = makeAsphaltTexture();
 
 /**
  * Shared PBR materials for the level. Reused across many meshes to keep GPU
@@ -47,6 +55,12 @@ export const MAT = {
     side: THREE.DoubleSide,
     depthWrite: false,
   }),
+  // terrain
+  grass: new THREE.MeshStandardMaterial({ map: grassTex, roughness: 1, metalness: 0 }),
+  asphalt: new THREE.MeshStandardMaterial({ color: "#3a3e42", map: asphaltTex, roughness: 0.96, metalness: 0.02 }),
+  sidewalk: new THREE.MeshStandardMaterial({ color: "#8b8f93", roughness: 0.92, metalness: 0.02 }),
+  curb: new THREE.MeshStandardMaterial({ color: "#b9bcc0", roughness: 0.85, metalness: 0.03 }),
+  laneLine: new THREE.MeshStandardMaterial({ color: "#d8cf7a", roughness: 0.7, metalness: 0.0 }),
 } as const;
 
 export function disposeLevelMaterials(): void {
@@ -54,4 +68,6 @@ export function disposeLevelMaterials(): void {
   plasterTex.dispose();
   roofTex.dispose();
   brickTex.dispose();
+  grassTex.dispose();
+  asphaltTex.dispose();
 }
