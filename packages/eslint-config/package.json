@@ -1,0 +1,16 @@
+{
+  "name": "@recon/eslint-config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./web": "./web.mjs",
+    "./base": "./base.mjs"
+  },
+  "dependencies": {
+    "eslint-config-next": "^16.2.9"
+  },
+  "peerDependencies": {
+    "eslint": "^9"
+  }
+}
