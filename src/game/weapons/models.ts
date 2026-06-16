@@ -101,7 +101,7 @@ export function buildWeapon(type: WeaponType): WeaponModel {
       box(group, 0.012, 0.05, 0.026, accent, -0.035, 0.128, sz);
       box(group, 0.012, 0.05, 0.026, accent, 0.035, 0.128, sz);
       cyl(group, 0.034, 0.01, sightGlass, 0, 0.14, sz);
-      const dotGeo = new THREE.SphereGeometry(0.0012, 8, 8);
+      const dotGeo = new THREE.SphereGeometry(0.0006, 8, 8);
       geos.push(dotGeo);
       const dot = new THREE.Mesh(dotGeo, redMat);
       dot.position.set(0, 0.14, sz - 0.006);
