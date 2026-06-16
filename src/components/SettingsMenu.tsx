@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useSettingsStore, SENS_MIN, SENS_MAX } from "@/game/state/settingsStore";
+import {
+  useSettingsStore,
+  SENS_MIN, SENS_MAX,
+  ADS_SENS_MIN, ADS_SENS_MAX,
+} from "@/game/state/settingsStore";
 import { useWorldStore } from "@/game/state/worldStore";
 import { useIsTouch } from "@/hooks/useIsTouch";
 
@@ -133,14 +137,18 @@ function SensSlider({
   label,
   value,
   onChange,
+  min = SENS_MIN,
+  max = SENS_MAX,
 }: {
   label: string;
   value: number;
   onChange: (v: number) => void;
+  min?: number;
+  max?: number;
 }) {
   ensureSliderStyle();
 
-  const pct = ((value - SENS_MIN) / (SENS_MAX - SENS_MIN)) * 100;
+  const pct = ((value - min) / (max - min)) * 100;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -180,8 +188,8 @@ function SensSlider({
       <input
         type="range"
         className="recon-slider"
-        min={SENS_MIN}
-        max={SENS_MAX}
+        min={min}
+        max={max}
         step={0.05}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
@@ -205,8 +213,8 @@ function SensSlider({
           marginTop: -4,
         }}
       >
-        <span>{SENS_MIN.toFixed(2)}</span>
-        <span>{SENS_MAX.toFixed(2)}</span>
+        <span>{min.toFixed(2)}</span>
+        <span>{max.toFixed(2)}</span>
       </div>
     </div>
   );
@@ -319,9 +327,13 @@ export function SettingsMenu() {
   const mouseSensitivity    = useSettingsStore((s) => s.mouseSensitivity);
   const touchSensitivity    = useSettingsStore((s) => s.touchSensitivity);
   const invertY             = useSettingsStore((s) => s.invertY);
+  const adsRedDotSensitivity    = useSettingsStore((s) => s.adsRedDotSensitivity);
+  const adsScopeSensitivity     = useSettingsStore((s) => s.adsScopeSensitivity);
   const setMouseSensitivity = useSettingsStore((s) => s.setMouseSensitivity);
   const setTouchSensitivity = useSettingsStore((s) => s.setTouchSensitivity);
   const setInvertY          = useSettingsStore((s) => s.setInvertY);
+  const setAdsRedDotSensitivity = useSettingsStore((s) => s.setAdsRedDotSensitivity);
+  const setAdsScopeSensitivity  = useSettingsStore((s) => s.setAdsScopeSensitivity);
   const reset               = useSettingsStore((s) => s.reset);
 
   // ------------------------------------------------------------------
@@ -424,6 +436,7 @@ export function SettingsMenu() {
               zIndex: 73,
               width: 340,
               maxWidth: "90vw",
+              maxHeight: "90vh",
               background:
                 "linear-gradient(145deg, rgba(10,16,22,0.97) 0%, rgba(5,7,10,0.97) 100%)",
               border: "1px solid rgba(76,201,240,0.18)",
@@ -501,6 +514,8 @@ export function SettingsMenu() {
                 flexDirection: "column",
                 gap: 18,
                 padding: "20px 20px 16px",
+                maxHeight: "calc(90vh - 120px)",
+                overflowY: "auto",
               }}
             >
               {/* Sensitivity slider — device-gated */}
@@ -517,6 +532,24 @@ export function SettingsMenu() {
                   onChange={setMouseSensitivity}
                 />
               )}
+
+              <Divider />
+
+              {/* ADS sensitivity sliders — shown on both desktop and mobile */}
+              <SensSlider
+                label="RED DOT SENS"
+                value={adsRedDotSensitivity}
+                onChange={setAdsRedDotSensitivity}
+                min={ADS_SENS_MIN}
+                max={ADS_SENS_MAX}
+              />
+              <SensSlider
+                label="SNIPER SCOPE SENS"
+                value={adsScopeSensitivity}
+                onChange={setAdsScopeSensitivity}
+                min={ADS_SENS_MIN}
+                max={ADS_SENS_MAX}
+              />
 
               <Divider />
 
