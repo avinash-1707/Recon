@@ -15,14 +15,23 @@ export interface PatrolRoute {
 
 const v = (x: number, z: number) => new THREE.Vector3(x, 0, z);
 
-// Routes run along the cross-streets and ring lanes of the town grid.
+/**
+ * Patrol routes blanket the whole town - the perimeter ring, both main
+ * avenues, the four residential blocks, and the side edges. Every waypoint is
+ * kept well clear (>~20m) of the player spawn at (0, 22) so enemies never
+ * appear on top of the player; the spawner also randomises each enemy's start
+ * waypoint, so they disperse across the map every match.
+ */
 export const PATROL_ROUTES: ReadonlyArray<PatrolRoute> = [
-  { id: "main-ns", waypoints: [v(0, 40), v(0, 12), v(0, -12), v(0, -40)] },
-  { id: "main-ew", waypoints: [v(-40, 0), v(-12, 0), v(12, 0), v(40, 0)] },
-  { id: "ring", waypoints: [v(-33, -33), v(33, -33), v(33, 33), v(-33, 33)] },
-  { id: "nw", waypoints: [v(-33, 11), v(-11, 11), v(-11, 33), v(-33, 33)] },
-  { id: "ne", waypoints: [v(33, 11), v(11, 11), v(11, 33), v(33, 33)] },
-  { id: "sw", waypoints: [v(-33, -11), v(-11, -11), v(-11, -33), v(-33, -33)] },
+  { id: "ring", waypoints: [v(-50, -50), v(50, -50), v(50, 50), v(-50, 50)] },
+  { id: "ave-ew", waypoints: [v(-46, 0), v(-16, 0), v(16, 0), v(46, 0)] },
+  { id: "ave-ns-south", waypoints: [v(0, -8), v(0, -30), v(0, -48)] },
+  { id: "block-sw", waypoints: [v(-7, -7), v(-35, -7), v(-35, -35), v(-7, -35)] },
+  { id: "block-se", waypoints: [v(7, -7), v(35, -7), v(35, -35), v(7, -35)] },
+  { id: "block-ne", waypoints: [v(21, 14), v(42, 14), v(42, 42), v(21, 42)] },
+  { id: "block-nw", waypoints: [v(-21, 14), v(-42, 14), v(-42, 42), v(-21, 42)] },
+  { id: "edge-e", waypoints: [v(48, 30), v(48, -30)] },
+  { id: "edge-w", waypoints: [v(-48, 30), v(-48, -30)] },
 ];
 
 export interface EnemySpawn {
@@ -31,13 +40,29 @@ export interface EnemySpawn {
   startWaypoint: number;
 }
 
-export const ENEMY_SPAWNS: ReadonlyArray<EnemySpawn> = [
-  { id: "g1", routeId: "main-ns", startWaypoint: 1 },
-  { id: "g2", routeId: "main-ew", startWaypoint: 2 },
-  { id: "g3", routeId: "ring", startWaypoint: 0 },
-  { id: "g4", routeId: "ring", startWaypoint: 2 },
-  { id: "g5", routeId: "nw", startWaypoint: 0 },
-  { id: "g6", routeId: "ne", startWaypoint: 1 },
-  { id: "g7", routeId: "sw", startWaypoint: 2 },
-  { id: "g8", routeId: "main-ns", startWaypoint: 3 },
+/**
+ * 20 enemies spread across the routes. `startWaypoint` is a sensible default;
+ * the spawner randomises it at runtime so positions vary per match.
+ */
+const SPAWN_PLAN: ReadonlyArray<readonly [string, number]> = [
+  ["ring", 3],
+  ["ave-ew", 3],
+  ["ave-ns-south", 2],
+  ["block-sw", 3],
+  ["block-se", 3],
+  ["block-ne", 2],
+  ["block-nw", 2],
+  ["edge-e", 1],
+  ["edge-w", 1],
 ];
+
+export const ENEMY_SPAWNS: ReadonlyArray<EnemySpawn> = (() => {
+  const out: EnemySpawn[] = [];
+  let n = 0;
+  for (const [routeId, count] of SPAWN_PLAN) {
+    for (let k = 0; k < count; k++) {
+      out.push({ id: `g${++n}`, routeId, startWaypoint: k });
+    }
+  }
+  return out;
+})();
