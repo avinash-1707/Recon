@@ -58,6 +58,7 @@ export class ViewmodelSystem implements GameModule {
   private prevRecoil = 0;
   private armGeo: THREE.BufferGeometry | null = null;
   private armMat: THREE.Material | null = null;
+  private readonly arms: THREE.Mesh[] = [];
 
   init(ctx: GameContext): void {
     this.cam = ctx.camera;
@@ -82,10 +83,13 @@ export class ViewmodelSystem implements GameModule {
     armR.position.set(0.12, -0.27, 0.05);
     armR.rotation.set(1.2, 0, -0.2);
     this.hold.add(armL, armR);
+    this.arms.push(armL, armR);
 
     this.current = currentWeapon();
     const cur = this.models.get(this.current);
     if (cur) cur.group.visible = true;
+    // The knife is held bare-handed - hide the forearms for melee.
+    for (const a of this.arms) a.visible = !WEAPONS[this.current].melee;
   }
 
   update(dt: number): void {
@@ -100,6 +104,7 @@ export class ViewmodelSystem implements GameModule {
       this.current = wanted;
       const next = this.models.get(wanted);
       if (next) next.group.visible = true;
+      for (const a of this.arms) a.visible = !WEAPONS[wanted].melee;
     }
 
     // Follow the camera exactly.
