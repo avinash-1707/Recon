@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { GameContext, GameModule } from "@/game/core/types";
 import { SystemOrder } from "@/game/core/types";
 import { playerRuntime } from "@/game/state/runtime";
+import { useSettingsStore } from "@/game/state/settingsStore";
 
 /** Logical actions, decoupled from physical keys. */
 export enum Action {
@@ -89,7 +90,83 @@ export const input: InputState = {
 };
 
 const LOOK_SENSITIVITY = 0.0022;
+/** Touch look (screen-px → rad). Tuned higher than mouse for finger drags. */
+const TOUCH_LOOK_SENSITIVITY = 0.0042;
 const MAX_PITCH = THREE.MathUtils.degToRad(88);
+
+/**
+ * Touch/mobile input bridge. The on-screen controls (TouchControls) write
+ * through this; the values are folded into the same per-frame `input` snapshot
+ * + look angles the keyboard/mouse path produces, so every downstream system
+ * stays agnostic to the input source.
+ */
+const touchState = {
+  active: false,
+  moveX: 0,
+  moveZ: 0,
+  lookDX: 0,
+  lookDY: 0,
+  sprint: false,
+  crouch: false,
+  jump: false,
+  reload: false,
+  interact: false,
+  weapon: 0,
+};
+
+export const touch = {
+  /** True once mobile play starts - substitutes for pointer lock on touch. */
+  get active(): boolean {
+    return touchState.active;
+  },
+  /** Mark touch play active/inactive. Active gates look/fire like pointer lock. */
+  setActive(v: boolean): void {
+    touchState.active = v;
+    input.pointerLocked = v;
+    if (!v) {
+      touchState.moveX = 0;
+      touchState.moveZ = 0;
+      touchState.sprint = false;
+      touchState.crouch = false;
+      input.fire = false;
+      input.aim = false;
+    }
+  },
+  /** Virtual stick axes, each -1..1 (x = strafe right, z = forward). */
+  move(x: number, z: number): void {
+    touchState.moveX = x;
+    touchState.moveZ = z;
+  },
+  /** Accumulate a look drag in screen px; folded in on the next frame. */
+  look(dx: number, dy: number): void {
+    touchState.lookDX += dx;
+    touchState.lookDY += dy;
+  },
+  fire(v: boolean): void {
+    input.fire = v;
+  },
+  aim(v: boolean): void {
+    input.aim = v;
+  },
+  sprint(v: boolean): void {
+    touchState.sprint = v;
+  },
+  crouch(v: boolean): void {
+    touchState.crouch = v;
+  },
+  jump(): void {
+    touchState.jump = true;
+  },
+  reload(): void {
+    touchState.reload = true;
+  },
+  interact(): void {
+    touchState.interact = true;
+  },
+  weapon(slot: number): void {
+    touchState.weapon = slot;
+  },
+};
 
 /** Dev/test affordance: ?test=1 forces "locked" so headless harnesses can drive the mouse. */
 export const TEST_MODE =
@@ -130,30 +207,57 @@ export class InputSystem implements GameModule {
   }
 
   update(): void {
-    // Mouse look → yaw/pitch (only while locked).
+    // Mouse + touch look → yaw/pitch (only while locked / touch-active).
+    // Sensitivity multipliers + invert come from the persisted settings store.
     input.lookDeltaX = this.accumDX;
     input.lookDeltaY = this.accumDY;
     if (input.pointerLocked) {
-      playerRuntime.yaw -= this.accumDX * LOOK_SENSITIVITY;
-      playerRuntime.pitch -= this.accumDY * LOOK_SENSITIVITY;
+      const s = useSettingsStore.getState();
+      const yawDelta =
+        this.accumDX * LOOK_SENSITIVITY * s.mouseSensitivity +
+        touchState.lookDX * TOUCH_LOOK_SENSITIVITY * s.touchSensitivity;
+      const pitchDelta =
+        this.accumDY * LOOK_SENSITIVITY * s.mouseSensitivity +
+        touchState.lookDY * TOUCH_LOOK_SENSITIVITY * s.touchSensitivity;
+      playerRuntime.yaw -= yawDelta;
+      playerRuntime.pitch -= (s.invertY ? -1 : 1) * pitchDelta;
       playerRuntime.pitch = THREE.MathUtils.clamp(playerRuntime.pitch, -MAX_PITCH, MAX_PITCH);
     }
     this.accumDX = 0;
     this.accumDY = 0;
+    touchState.lookDX = 0;
+    touchState.lookDY = 0;
 
-    // Movement axes.
-    input.moveZ = this.axis(Action.MoveForward, Action.MoveBack);
-    input.moveX = this.axis(Action.MoveRight, Action.MoveLeft);
-    input.sprint = this.held.has(Action.Sprint);
-    input.crouch = this.held.has(Action.Crouch);
+    // Movement axes - keyboard + virtual stick, clamped to the unit range.
+    input.moveZ = THREE.MathUtils.clamp(
+      this.axis(Action.MoveForward, Action.MoveBack) + touchState.moveZ,
+      -1,
+      1,
+    );
+    input.moveX = THREE.MathUtils.clamp(
+      this.axis(Action.MoveRight, Action.MoveLeft) + touchState.moveX,
+      -1,
+      1,
+    );
+    input.sprint = this.held.has(Action.Sprint) || touchState.sprint;
+    input.crouch = this.held.has(Action.Crouch) || touchState.crouch;
 
-    // Discrete actions consumed from keydown latches (frame-rate independent).
-    input.reloadPressed = this.pendingReload;
-    input.interactPressed = this.pendingInteract;
-    input.weaponSlot = this.pendingWeapon;
+    // Touch jump latch (mirrors the keydown latch).
+    if (touchState.jump) {
+      input.jumpQueued = true;
+      touchState.jump = false;
+    }
+
+    // Discrete actions consumed from keydown / touch latches (frame-rate independent).
+    input.reloadPressed = this.pendingReload || touchState.reload;
+    input.interactPressed = this.pendingInteract || touchState.interact;
+    input.weaponSlot = this.pendingWeapon || touchState.weapon;
     this.pendingReload = false;
     this.pendingInteract = false;
     this.pendingWeapon = 0;
+    touchState.reload = false;
+    touchState.interact = false;
+    touchState.weapon = 0;
   }
 
   dispose(): void {

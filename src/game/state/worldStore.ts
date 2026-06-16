@@ -11,17 +11,22 @@ export interface WorldState {
   paused: boolean;
   /** Draw Rapier collider wireframes. */
   debugPhysics: boolean;
+  /** Touch play engaged (mobile "tap to play") - drives the on-screen controls. */
+  touchPlaying: boolean;
 
   setPaused: (v: boolean) => void;
   togglePaused: () => void;
   toggleDebugPhysics: () => void;
+  setTouchPlaying: (v: boolean) => void;
 }
 
 export const useWorldStore = create<WorldState>((set) => ({
   paused: false,
   debugPhysics: false,
+  touchPlaying: false,
 
   setPaused: (v) => set({ paused: v }),
   togglePaused: () => set((s) => ({ paused: !s.paused })),
   toggleDebugPhysics: () => set((s) => ({ debugPhysics: !s.debugPhysics })),
+  setTouchPlaying: (v) => set({ touchPlaying: v }),
 }));
