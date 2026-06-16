@@ -14,7 +14,12 @@ const lerp = THREE.MathUtils.lerp;
 const HIP = new THREE.Vector3(0.16, -0.17, -0.42);
 const ADS_AIM_Z = -0.17;
 
-const ALL: ReadonlyArray<WeaponType> = [WeaponType.Pistol, WeaponType.AR, WeaponType.Sniper];
+const ALL: ReadonlyArray<WeaponType> = [
+  WeaponType.Pistol,
+  WeaponType.AR,
+  WeaponType.Sniper,
+  WeaponType.Knife,
+];
 
 const currentWeapon = (): WeaponType => useWeaponStore.getState().current;
 
