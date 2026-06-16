@@ -6,6 +6,7 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
+import { user } from "./auth";
 
 /** Live + historical rooms. The in-memory room manager is the source of truth
  *  during play; this row lets rooms be looked up and survive a restart. */
@@ -36,7 +37,7 @@ export const matchPlayers = pgTable("match_players", {
     .notNull()
     .references(() => matches.id, { onDelete: "cascade" }),
   handle: text().notNull(),
-  userId: text(),
+  userId: text().references(() => user.id, { onDelete: "set null" }),
   kills: integer().notNull().default(0),
   deaths: integer().notNull().default(0),
 });
@@ -44,7 +45,9 @@ export const matchPlayers = pgTable("match_players", {
 /** Lifetime stats, keyed by authenticated user. Guests never get a row.
  *  `userId` becomes a FK to the auth `user` table in CP6. */
 export const playerStats = pgTable("player_stats", {
-  userId: text().primaryKey(),
+  userId: text()
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
   kills: integer().notNull().default(0),
   deaths: integer().notNull().default(0),
   matchesPlayed: integer().notNull().default(0),

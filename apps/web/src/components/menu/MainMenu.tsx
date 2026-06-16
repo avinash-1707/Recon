@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAppStore } from "@/game/state/appStore";
 import { useNetStore } from "@/game/state/netStore";
 import { createRoom, joinRoom, startMatch, leaveRoom } from "@/game/net/session";
+import { AccountPanel } from "./AccountPanel";
 
 // ---------------------------------------------------------------------------
 // Design tokens — extend the existing HUD palette from globals.css
@@ -1088,23 +1089,26 @@ export function MainMenu() {
             </span>
           </div>
 
-          {/* Right: connection phase indicator */}
-          {phase !== "idle" && (
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div
-                style={{
-                  width: 5,
-                  height: 5,
-                  borderRadius: "50%",
-                  background: phase === "connecting" ? WARN : "#6fdc8c",
-                  boxShadow: `0 0 5px ${phase === "connecting" ? "rgba(240,160,76,0.8)" : "rgba(111,220,140,0.8)"}`,
-                }}
-              />
-              <span style={{ fontSize: "0.48rem", letterSpacing: "0.25em", color: MUTED }}>
-                {phase === "connecting" ? "CONNECTING" : phase === "lobby" ? "LOBBY" : "IN MATCH"}
-              </span>
-            </div>
-          )}
+          {/* Right: connection phase indicator + account panel */}
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            {phase !== "idle" && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div
+                  style={{
+                    width: 5,
+                    height: 5,
+                    borderRadius: "50%",
+                    background: phase === "connecting" ? WARN : "#6fdc8c",
+                    boxShadow: `0 0 5px ${phase === "connecting" ? "rgba(240,160,76,0.8)" : "rgba(111,220,140,0.8)"}`,
+                  }}
+                />
+                <span style={{ fontSize: "0.48rem", letterSpacing: "0.25em", color: MUTED }}>
+                  {phase === "connecting" ? "CONNECTING" : phase === "lobby" ? "LOBBY" : "IN MATCH"}
+                </span>
+              </div>
+            )}
+            <AccountPanel />
+          </div>
         </div>
 
         {/* Main content area */}

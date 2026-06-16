@@ -22,7 +22,27 @@ type GameNamespace = Namespace<
 /** Wire the client-authoritative relay onto the /game namespace. The server
  *  never simulates — it validates each payload, stamps the authoritative
  *  sender id, and fans events out to the socket.io room. */
-export function attachSockets(game: GameNamespace, rooms: RoomManager): void {
+export function attachSockets(
+  game: GameNamespace,
+  rooms: RoomManager,
+  resolveUserId?: (cookie: string) => Promise<string | null>,
+): void {
+  // Auth handshake (only when auth is enabled): resolve the session cookie to a
+  // user id so stats persist for authenticated players. No session = guest.
+  if (resolveUserId) {
+    game.use((socket, next) => {
+      resolveUserId(socket.handshake.headers.cookie ?? "")
+        .then((userId) => {
+          socket.data.userId = userId;
+          next();
+        })
+        .catch(() => {
+          socket.data.userId = null;
+          next();
+        });
+    });
+  }
+
   game.on("connection", (socket) => {
     // Fresh connection: reset per-match fields. `userId` uses ??= so the CP6
     // auth-handshake middleware (which runs before this handler) can pre-set
