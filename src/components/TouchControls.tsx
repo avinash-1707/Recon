@@ -40,6 +40,249 @@ const SLOTS: SlotMeta[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// SVG icon components - pure inline, no external deps
+// ---------------------------------------------------------------------------
+interface IconProps {
+  size?: number;
+  color?: string;
+}
+
+// Target/crosshair reticle - primary fire icon
+function IconFire({ size = 26, color = "currentColor" }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 26 26"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ display: "block", filter: "drop-shadow(0 0 3px currentColor)" }}
+    >
+      {/* Outer circle */}
+      <circle cx="13" cy="13" r="10.5" stroke={color} strokeWidth="1.2" />
+      {/* Inner circle */}
+      <circle cx="13" cy="13" r="4" stroke={color} strokeWidth="1" />
+      {/* Center dot */}
+      <circle cx="13" cy="13" r="1.4" fill={color} />
+      {/* Tick marks - top, right, bottom, left */}
+      <line x1="13" y1="1.5" x2="13" y2="5.5" stroke={color} strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="24.5" y1="13" x2="20.5" y2="13" stroke={color} strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="13" y1="24.5" x2="13" y2="20.5" stroke={color} strokeWidth="1.2" strokeLinecap="round" />
+      <line x1="1.5" y1="13" x2="5.5" y2="13" stroke={color} strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// Aim-down-sights / scope icon - circle with fine crosshair and dot
+function IconAim({ size = 22, color = "currentColor" }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 22 22"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ display: "block", filter: "drop-shadow(0 0 2px currentColor)" }}
+    >
+      <circle cx="11" cy="11" r="8.5" stroke={color} strokeWidth="1.1" />
+      <circle cx="11" cy="11" r="2.5" stroke={color} strokeWidth="0.9" />
+      <circle cx="11" cy="11" r="1" fill={color} />
+      <line x1="11" y1="1.5" x2="11" y2="7" stroke={color} strokeWidth="1" strokeLinecap="round" />
+      <line x1="11" y1="15" x2="11" y2="20.5" stroke={color} strokeWidth="1" strokeLinecap="round" />
+      <line x1="1.5" y1="11" x2="7" y2="11" stroke={color} strokeWidth="1" strokeLinecap="round" />
+      <line x1="15" y1="11" x2="20.5" y2="11" stroke={color} strokeWidth="1" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// Chevron-up / upward arrow for jump
+function IconJump({ size = 22, color = "currentColor" }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 22 22"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ display: "block", filter: "drop-shadow(0 0 2px currentColor)" }}
+    >
+      {/* Arrow shaft */}
+      <line x1="11" y1="18" x2="11" y2="6" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+      {/* Arrowhead */}
+      <polyline points="6,11 11,5.5 16,11" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* Ground bar */}
+      <line x1="5" y1="18.5" x2="17" y2="18.5" stroke={color} strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// Circular refresh arrow for reload
+function IconReload({ size = 20, color = "currentColor" }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 20 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ display: "block", filter: "drop-shadow(0 0 2px currentColor)" }}
+    >
+      {/* Arc - 3/4 circle going clockwise */}
+      <path
+        d="M 10 3 A 7 7 0 1 1 3.5 13.5"
+        stroke={color}
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        fill="none"
+      />
+      {/* Arrowhead at arc tail */}
+      <polyline points="3.5,17.5 3.5,13.5 7.5,13.5" stroke={color} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </svg>
+  );
+}
+
+// Chevron-down + bar for crouch
+function IconCrouch({ size = 22, color = "currentColor" }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 22 22"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ display: "block", filter: "drop-shadow(0 0 2px currentColor)" }}
+    >
+      {/* Chevron down */}
+      <polyline points="6,7 11,13 16,7" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* Second chevron, slightly smaller */}
+      <polyline points="7.5,11 11,15.5 14.5,11" stroke={color} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* Ground bar */}
+      <line x1="5" y1="18.5" x2="17" y2="18.5" stroke={color} strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// --- Weapon icons ---
+
+// Pistol - compact barrel + grip silhouette
+function IconPistol({ size = 20, color = "currentColor" }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ display: "block" }}
+    >
+      {/* Barrel */}
+      <rect x="3" y="9" width="14" height="4" rx="1" stroke={color} strokeWidth="1.2" fill="none" />
+      {/* Slide top */}
+      <rect x="7" y="7" width="9" height="2" rx="0.5" stroke={color} strokeWidth="1" fill="none" />
+      {/* Trigger guard + grip */}
+      <path d="M 13 13 L 13 19 Q 13 21 15 21 L 17 21 Q 19 21 19 19 L 19 13 Z" stroke={color} strokeWidth="1.1" fill="none" strokeLinejoin="round" />
+      {/* Trigger */}
+      <line x1="15.5" y1="13.5" x2="15.5" y2="16.5" stroke={color} strokeWidth="1" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// AR / Assault Rifle - longer barrel, box magazine
+function IconAR({ size = 20, color = "currentColor" }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 26 18"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ display: "block" }}
+    >
+      {/* Long barrel */}
+      <line x1="1" y1="7" x2="10" y2="7" stroke={color} strokeWidth="1.3" strokeLinecap="round" />
+      {/* Receiver body */}
+      <rect x="9" y="4.5" width="11" height="5" rx="1" stroke={color} strokeWidth="1.2" fill="none" />
+      {/* Carry handle / stock */}
+      <path d="M 20 5 L 25 5 L 25 9.5" stroke={color} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* Magazine */}
+      <rect x="13" y="9.5" width="4" height="6" rx="0.8" stroke={color} strokeWidth="1.1" fill="none" />
+      {/* Trigger */}
+      <line x1="14.5" y1="9.5" x2="14.5" y2="12" stroke={color} strokeWidth="1" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// Sniper - long barrel + scope on top
+function IconSniper({ size = 20, color = "currentColor" }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 28 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ display: "block" }}
+    >
+      {/* Long barrel */}
+      <line x1="1" y1="9" x2="12" y2="9" stroke={color} strokeWidth="1.4" strokeLinecap="round" />
+      {/* Receiver */}
+      <rect x="11" y="6.5" width="11" height="5" rx="1" stroke={color} strokeWidth="1.2" fill="none" />
+      {/* Stock */}
+      <path d="M 22 7 L 27 7 L 27 11" stroke={color} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* Scope cylinder */}
+      <rect x="13" y="3" width="7" height="3" rx="1.5" stroke={color} strokeWidth="1.1" fill="none" />
+      {/* Scope mount lines */}
+      <line x1="15" y1="6" x2="15" y2="6.5" stroke={color} strokeWidth="1" strokeLinecap="round" />
+      <line x1="18" y1="6" x2="18" y2="6.5" stroke={color} strokeWidth="1" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// Knife - blade silhouette
+function IconKnife({ size = 20, color = "currentColor" }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 22 22"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ display: "block" }}
+    >
+      {/* Blade */}
+      <path d="M 5 17 L 17 5 Q 19 3 20 4 Q 21 5 19 7 L 7 19 Z" stroke={color} strokeWidth="1.1" fill="none" strokeLinejoin="round" />
+      {/* Guard */}
+      <line x1="7" y1="15" x2="9" y2="17" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+      {/* Handle */}
+      <path d="M 4 18 L 3 19 Q 2 20 3 21 L 4 21 L 7 18 Z" stroke={color} strokeWidth="1" fill="none" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// Small cycle/refresh arrow indicator for weapon button
+function IconCycle({ size = 12, color = "currentColor" }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 12 12"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ display: "block" }}
+    >
+      <path
+        d="M 6 1.5 A 4.5 4.5 0 1 1 2 8"
+        stroke={color}
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <polyline points="2,10.5 2,8 4.5,8" stroke={color} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </svg>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Shared style helpers
 // ---------------------------------------------------------------------------
 const noSelect = {
@@ -269,7 +512,8 @@ function LookSurface() {
 // Action button (fire/aim/jump/reload/crouch)
 // ---------------------------------------------------------------------------
 interface ActionBtnProps {
-  label: string;
+  label: string; // used only as aria-label for accessibility
+  icon: React.ReactNode;
   size?: number;
   active?: boolean;
   accentColor?: string;
@@ -279,6 +523,7 @@ interface ActionBtnProps {
 
 function ActionBtn({
   label,
+  icon,
   size = BTN_SIZE,
   active = false,
   accentColor = ACCENT,
@@ -303,22 +548,17 @@ function ActionBtn({
 
   return (
     <div
+      aria-label={label}
+      role="button"
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
-      style={glassBtn(size, active, accentColor)}
+      style={{
+        ...glassBtn(size, active, accentColor),
+        color: active ? accentColor : FG,
+      }}
     >
-      <span
-        style={{
-          fontSize: size <= 44 ? "0.5rem" : "0.58rem",
-          letterSpacing: "0.12em",
-          color: active ? accentColor : FG,
-          textShadow: SHADOW,
-          fontWeight: active ? 600 : 400,
-        }}
-      >
-        {label}
-      </span>
+      {icon}
     </div>
   );
 }
@@ -360,23 +600,18 @@ function FireButton() {
 
   return (
     <div
+      aria-label="Fire"
+      role="button"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
-      style={glassBtn(BTN_FIRE_SIZE, active, ACCENT)}
+      style={{
+        ...glassBtn(BTN_FIRE_SIZE, active, ACCENT),
+        color: active ? ACCENT : FG,
+      }}
     >
-      <span
-        style={{
-          fontSize: "0.58rem",
-          letterSpacing: "0.12em",
-          color: active ? ACCENT : FG,
-          textShadow: SHADOW,
-          fontWeight: active ? 600 : 400,
-        }}
-      >
-        FIRE
-      </span>
+      <IconFire size={28} color={active ? ACCENT : FG} />
     </div>
   );
 }
@@ -431,12 +666,14 @@ function ActionButtons() {
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
         <ActionBtn
           label="AIM"
+          icon={<IconAim size={22} color={aimingLocal ? ACCENT : FG} />}
           active={aimingLocal}
           onPressStart={handleAimStart}
           onPressEnd={handleAimEnd}
         />
         <ActionBtn
           label="JUMP"
+          icon={<IconJump size={22} color={FG} />}
           onPressStart={handleJump}
         />
       </div>
@@ -445,6 +682,7 @@ function ActionButtons() {
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
         <ActionBtn
           label="CROUCH"
+          icon={<IconCrouch size={20} color={crouchActive ? WARN : FG} />}
           size={BTN_SIZE - 6}
           active={crouchActive}
           accentColor={WARN}
@@ -457,6 +695,7 @@ function ActionButtons() {
       <div style={{ width: "100%", display: "flex", justifyContent: "flex-end" }}>
         <ActionBtn
           label="RELOAD"
+          icon={<IconReload size={18} color={WARN} />}
           size={40}
           accentColor={WARN}
           onPressStart={handleReload}
@@ -483,8 +722,21 @@ function WeaponCycleButton() {
     touch.weapon(next.slot);
   }, []);
 
+  // Pick the right weapon icon based on current weapon type
+  const WeaponIcon = (() => {
+    switch (cur.type) {
+      case WeaponType.Pistol:  return IconPistol;
+      case WeaponType.AR:      return IconAR;
+      case WeaponType.Sniper:  return IconSniper;
+      case WeaponType.Knife:   return IconKnife;
+      default:                 return IconPistol;
+    }
+  })();
+
   return (
     <div
+      aria-label="Switch weapon"
+      role="button"
       onPointerDown={cycle}
       style={{
         position: "absolute",
@@ -492,13 +744,13 @@ function WeaponCycleButton() {
         // Sit above the action buttons cluster.
         bottom: 250,
         width: 64,
-        height: 50,
+        height: 56,
         borderRadius: 6,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: 2,
+        gap: 4,
         background: "rgba(76,201,240,0.10)",
         border: `1px solid rgba(76,201,240,0.3)`,
         backdropFilter: "blur(4px)",
@@ -507,43 +759,39 @@ function WeaponCycleButton() {
         pointerEvents: "auto",
         cursor: "pointer",
         zIndex: 10,
+        color: ACCENT,
         ...noSelect,
       }}
     >
-      <span
+      {/* Per-weapon icon in accent color */}
+      <div
         style={{
-          fontSize: "0.4rem",
-          letterSpacing: "0.2em",
-          color: "rgba(215,226,230,0.45)",
-          textShadow: SHADOW,
-          lineHeight: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          filter: `drop-shadow(0 0 3px ${ACCENT})`,
+          color: ACCENT,
         }}
       >
-        WEAPON
-      </span>
+        <WeaponIcon size={22} color={ACCENT} />
+      </div>
+      {/* Weapon abbr label - tiny, keeps orientation clear */}
       <span
         style={{
-          fontSize: "0.72rem",
-          letterSpacing: "0.08em",
+          fontSize: "0.46rem",
+          letterSpacing: "0.14em",
           color: ACCENT,
           textShadow: SHADOW,
           fontWeight: 600,
           lineHeight: 1,
         }}
       >
-        {cur.label}
+        {cur.abbr}
       </span>
-      <span
-        style={{
-          fontSize: "0.42rem",
-          letterSpacing: "0.15em",
-          color: "rgba(215,226,230,0.35)",
-          textShadow: SHADOW,
-          lineHeight: 1,
-        }}
-      >
-        TAP &#x21BB;
-      </span>
+      {/* Cycle indicator icon */}
+      <div style={{ color: "rgba(215,226,230,0.4)" }}>
+        <IconCycle size={11} color="rgba(215,226,230,0.4)" />
+      </div>
     </div>
   );
 }
