@@ -324,21 +324,69 @@ function ActionBtn({
 }
 
 // ---------------------------------------------------------------------------
+// Fire button - holds to fire AND doubles as a look pad: dragging the same
+// finger pans the camera (touch.look) so the player can fire + aim one-handed.
+// Only the fire button gets this behaviour.
+// ---------------------------------------------------------------------------
+function FireButton() {
+  const [active, setActive] = useState(false);
+  const ptr = useRef<number | null>(null);
+  const last = useRef({ x: 0, y: 0 });
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    ptr.current = e.pointerId;
+    last.current = { x: e.clientX, y: e.clientY };
+    setActive(true);
+    touch.fire(true);
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (e.pointerId !== ptr.current) return;
+    const dx = e.clientX - last.current.x;
+    const dy = e.clientY - last.current.y;
+    last.current = { x: e.clientX, y: e.clientY };
+    touch.look(dx, dy);
+  };
+
+  const onPointerUp = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    if (e.pointerId !== ptr.current) return;
+    ptr.current = null;
+    setActive(false);
+    touch.fire(false);
+  };
+
+  return (
+    <div
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      style={glassBtn(BTN_FIRE_SIZE, active, ACCENT)}
+    >
+      <span
+        style={{
+          fontSize: "0.58rem",
+          letterSpacing: "0.12em",
+          color: active ? ACCENT : FG,
+          textShadow: SHADOW,
+          fontWeight: active ? 600 : 400,
+        }}
+      >
+        FIRE
+      </span>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Action button cluster (bottom-right)
 // ---------------------------------------------------------------------------
 function ActionButtons() {
-  const [firingLocal, setFiringLocal] = useState(false);
   const [aimingLocal, setAimingLocal] = useState(false);
   const [crouchActive, setCrouchActive] = useState(false);
-
-  const handleFireStart = useCallback(() => {
-    setFiringLocal(true);
-    touch.fire(true);
-  }, []);
-  const handleFireEnd = useCallback(() => {
-    setFiringLocal(false);
-    touch.fire(false);
-  }, []);
 
   const handleAimStart = useCallback(() => {
     setAimingLocal(true);
@@ -402,14 +450,7 @@ function ActionButtons() {
           accentColor={WARN}
           onPressStart={handleCrouchToggle}
         />
-        <ActionBtn
-          label="FIRE"
-          size={BTN_FIRE_SIZE}
-          active={firingLocal}
-          accentColor={ACCENT}
-          onPressStart={handleFireStart}
-          onPressEnd={handleFireEnd}
-        />
+        <FireButton />
       </div>
 
       {/* Reload - slim bar below */}
@@ -426,92 +467,83 @@ function ActionButtons() {
 }
 
 // ---------------------------------------------------------------------------
-// Weapon selector strip (right edge, above action buttons)
+// Weapon cycle button (right edge, above action buttons). One tap = next weapon.
 // ---------------------------------------------------------------------------
-function WeaponSelector() {
+function WeaponCycleButton() {
   const current = useWeaponStore((s) => s.current);
-  // Local tapped slot for visual feedback on the frame before store updates
-  const [tappedSlot, setTappedSlot] = useState<number | null>(null);
+  const idx = SLOTS.findIndex((s) => s.type === current);
+  const cur = SLOTS[idx >= 0 ? idx : 0];
 
-  const handleSlot = useCallback((slot: number) => {
-    touch.weapon(slot);
-    setTappedSlot(slot);
-    // Clear local highlight after a short delay (store will drive it after)
-    setTimeout(() => setTappedSlot(null), 200);
+  const cycle = useCallback((e: React.PointerEvent) => {
+    e.stopPropagation();
+    // Read live so rapid taps step through the slots in order.
+    const live = useWeaponStore.getState().current;
+    const i = SLOTS.findIndex((s) => s.type === live);
+    const next = SLOTS[(i + 1) % SLOTS.length];
+    touch.weapon(next.slot);
   }, []);
 
   return (
     <div
+      onPointerDown={cycle}
       style={{
         position: "absolute",
         right: 18,
-        // Sit above the action buttons cluster; ~230px bottom offset clears them
-        bottom: 230,
+        // Sit above the action buttons cluster.
+        bottom: 250,
+        width: 64,
+        height: 50,
+        borderRadius: 6,
         display: "flex",
         flexDirection: "column",
-        gap: 6,
-        pointerEvents: "none",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 2,
+        background: "rgba(76,201,240,0.10)",
+        border: `1px solid rgba(76,201,240,0.3)`,
+        backdropFilter: "blur(4px)",
+        boxShadow: "0 0 10px rgba(76,201,240,0.18)",
+        touchAction: "none",
+        pointerEvents: "auto",
+        cursor: "pointer",
         zIndex: 10,
+        ...noSelect,
       }}
     >
-      {SLOTS.map(({ slot, abbr, type }) => {
-        const isActive = current === type || tappedSlot === slot;
-        return (
-          <div
-            key={slot}
-            onPointerDown={(e) => {
-              e.stopPropagation();
-              handleSlot(slot);
-            }}
-            style={{
-              width: 52,
-              height: 36,
-              borderRadius: 4,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              background: isActive
-                ? "rgba(76,201,240,0.18)"
-                : "rgba(215,226,230,0.05)",
-              border: `1px solid ${isActive ? ACCENT : "rgba(215,226,230,0.14)"}`,
-              backdropFilter: "blur(4px)",
-              boxShadow: isActive
-                ? "0 0 10px rgba(76,201,240,0.25)"
-                : "none",
-              touchAction: "none",
-              pointerEvents: "auto",
-              cursor: "pointer",
-              transition: "background 120ms, border-color 120ms, box-shadow 120ms",
-              ...noSelect,
-            }}
-          >
-            <span
-              style={{
-                fontSize: "0.38rem",
-                letterSpacing: "0.15em",
-                color: isActive ? ACCENT : "rgba(215,226,230,0.4)",
-                textShadow: SHADOW,
-                lineHeight: 1,
-              }}
-            >
-              {slot}
-            </span>
-            <span
-              style={{
-                fontSize: "0.52rem",
-                letterSpacing: "0.1em",
-                color: isActive ? ACCENT : "rgba(215,226,230,0.6)",
-                textShadow: SHADOW,
-                fontWeight: isActive ? 600 : 400,
-                marginTop: 1,
-              }}
-            >
-              {abbr}
-            </span>
-          </div>
-        );
-      })}
+      <span
+        style={{
+          fontSize: "0.4rem",
+          letterSpacing: "0.2em",
+          color: "rgba(215,226,230,0.45)",
+          textShadow: SHADOW,
+          lineHeight: 1,
+        }}
+      >
+        WEAPON
+      </span>
+      <span
+        style={{
+          fontSize: "0.72rem",
+          letterSpacing: "0.08em",
+          color: ACCENT,
+          textShadow: SHADOW,
+          fontWeight: 600,
+          lineHeight: 1,
+        }}
+      >
+        {cur.label}
+      </span>
+      <span
+        style={{
+          fontSize: "0.42rem",
+          letterSpacing: "0.15em",
+          color: "rgba(215,226,230,0.35)",
+          textShadow: SHADOW,
+          lineHeight: 1,
+        }}
+      >
+        TAP &#x21BB;
+      </span>
     </div>
   );
 }
@@ -555,8 +587,8 @@ export function TouchControls() {
       {/* Right thumb zone - look/aim drag surface (sits under buttons via z-index) */}
       <LookSurface />
 
-      {/* Weapon selector strip - top-right */}
-      <WeaponSelector />
+      {/* Weapon cycle button - tap to switch to next weapon */}
+      <WeaponCycleButton />
 
       {/* Action buttons cluster - bottom-right */}
       <ActionButtons />
