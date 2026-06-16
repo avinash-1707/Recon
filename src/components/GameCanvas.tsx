@@ -11,6 +11,7 @@ import { PlayOverlay } from "@/components/PlayOverlay";
 import { CoreSystems } from "@/components/CoreSystems";
 import { Crosshair } from "@/components/Crosshair";
 import { ScopeOverlay } from "@/components/ScopeOverlay";
+import { Hud } from "@/components/Hud";
 import { EngineProvider, EngineRunner } from "@/game/core/engineContext";
 import { useWorldStore } from "@/game/state/worldStore";
 import { Player } from "@/game/entities/Player";
@@ -100,6 +101,7 @@ export function GameCanvas() {
         <AdaptiveDpr pixelated />
         <Stats />
       </Canvas>
+      <Hud />
       <Crosshair />
       <ScopeOverlay />
       <ProgressOverlay />
