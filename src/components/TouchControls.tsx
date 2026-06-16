@@ -47,28 +47,31 @@ interface IconProps {
   color?: string;
 }
 
-// Target/crosshair reticle - primary fire icon
-function IconFire({ size = 26, color = "currentColor" }: IconProps) {
+// Bullet/cartridge silhouette - pointed tip on top, casing body, rim groove near base
+function IconBullet({ size = 28, color = "currentColor" }: IconProps) {
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 26 26"
+      viewBox="0 0 28 28"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       style={{ display: "block", filter: "drop-shadow(0 0 3px currentColor)" }}
     >
-      {/* Outer circle */}
-      <circle cx="13" cy="13" r="10.5" stroke={color} strokeWidth="1.2" />
-      {/* Inner circle */}
-      <circle cx="13" cy="13" r="4" stroke={color} strokeWidth="1" />
-      {/* Center dot */}
-      <circle cx="13" cy="13" r="1.4" fill={color} />
-      {/* Tick marks - top, right, bottom, left */}
-      <line x1="13" y1="1.5" x2="13" y2="5.5" stroke={color} strokeWidth="1.2" strokeLinecap="round" />
-      <line x1="24.5" y1="13" x2="20.5" y2="13" stroke={color} strokeWidth="1.2" strokeLinecap="round" />
-      <line x1="13" y1="24.5" x2="13" y2="20.5" stroke={color} strokeWidth="1.2" strokeLinecap="round" />
-      <line x1="1.5" y1="13" x2="5.5" y2="13" stroke={color} strokeWidth="1.2" strokeLinecap="round" />
+      {/* Projectile tip - pointed ogive */}
+      <path
+        d="M14 3 C14 3 10.5 8.5 10.5 12 L17.5 12 C17.5 8.5 14 3 14 3 Z"
+        stroke={color}
+        strokeWidth="1.1"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      {/* Casing body - straight-sided rectangle below ogive */}
+      <rect x="10.5" y="12" width="7" height="10" rx="0.5" stroke={color} strokeWidth="1.1" fill="none" />
+      {/* Rim groove line near the base - classic extractor groove */}
+      <line x1="10.5" y1="20" x2="17.5" y2="20" stroke={color} strokeWidth="1.3" strokeLinecap="round" />
+      {/* Case head / rim - slightly wider than body */}
+      <rect x="9.5" y="22" width="9" height="3" rx="0.8" stroke={color} strokeWidth="1.1" fill="none" />
     </svg>
   );
 }
@@ -611,7 +614,7 @@ function FireButton() {
         color: active ? ACCENT : FG,
       }}
     >
-      <IconFire size={28} color={active ? ACCENT : FG} />
+      <IconBullet size={28} color={active ? ACCENT : FG} />
     </div>
   );
 }
@@ -620,16 +623,15 @@ function FireButton() {
 // Action button cluster (bottom-right)
 // ---------------------------------------------------------------------------
 function ActionButtons() {
-  const [aimingLocal, setAimingLocal] = useState(false);
+  const [aimActive, setAimActive] = useState(false);
   const [crouchActive, setCrouchActive] = useState(false);
 
-  const handleAimStart = useCallback(() => {
-    setAimingLocal(true);
-    touch.aim(true);
-  }, []);
-  const handleAimEnd = useCallback(() => {
-    setAimingLocal(false);
-    touch.aim(false);
+  const handleAimToggle = useCallback(() => {
+    setAimActive((prev) => {
+      const next = !prev;
+      touch.aim(next);
+      return next;
+    });
   }, []);
 
   const handleJump = useCallback(() => {
@@ -666,10 +668,9 @@ function ActionButtons() {
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
         <ActionBtn
           label="AIM"
-          icon={<IconAim size={22} color={aimingLocal ? ACCENT : FG} />}
-          active={aimingLocal}
-          onPressStart={handleAimStart}
-          onPressEnd={handleAimEnd}
+          icon={<IconAim size={22} color={aimActive ? ACCENT : FG} />}
+          active={aimActive}
+          onPressStart={handleAimToggle}
         />
         <ActionBtn
           label="JUMP"
