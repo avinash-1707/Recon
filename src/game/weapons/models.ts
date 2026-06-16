@@ -33,7 +33,9 @@ export function buildWeapon(type: WeaponType): WeaponModel {
   const fde = new THREE.MeshStandardMaterial({ color: 0x6b5d44, roughness: 0.7, metalness: 0.1 });
   const accent = new THREE.MeshStandardMaterial({ color: 0x44494f, roughness: 0.5, metalness: 0.7 });
   const lens = new THREE.MeshStandardMaterial({ color: 0x0c1a24, roughness: 0.08, metalness: 0.5, emissive: 0x0a2230, emissiveIntensity: 0.4 });
-  mats.push(metal, poly, fde, accent, lens);
+  // Bright polished steel for blades / bare metal.
+  const steel = new THREE.MeshStandardMaterial({ color: 0xb9c1c9, roughness: 0.22, metalness: 0.96 });
+  mats.push(metal, poly, fde, accent, lens, steel);
 
   const box = (parent: THREE.Object3D, w: number, h: number, d: number, mat: THREE.Material, x: number, y: number, z: number, rx = 0): THREE.Mesh => {
     const g = new THREE.BoxGeometry(w, h, d);
@@ -63,18 +65,27 @@ export function buildWeapon(type: WeaponType): WeaponModel {
 
   switch (type) {
     case WeaponType.Pistol: {
-      box(group, 0.062, 0.17, 0.1, poly, 0, -0.09, 0.045, -0.2); // grip
-      box(group, 0.05, 0.03, 0.07, poly, 0, -0.165, 0.05); // magwell base
-      box(group, 0.052, 0.075, 0.24, poly, 0, -0.01, -0.04); // frame
-      triggerGuard(0, -0.015, 0.0);
-      // slide with rear serrations
-      box(slide, 0.058, 0.055, 0.25, accent, 0, 0.05, -0.04);
-      for (let i = 0; i < 4; i++) box(slide, 0.06, 0.045, 0.006, metal, 0, 0.05, 0.06 + i * 0.018);
-      box(group, 0.014, 0.018, 0.018, metal, 0, 0.086, -0.15); // front sight
-      box(group, 0.03, 0.018, 0.016, metal, 0, 0.086, 0.07); // rear sight
-      box(mag, 0.046, 0.14, 0.078, poly, 0, -0.12, 0.045); // mag
-      box(mag, 0.052, 0.016, 0.084, accent, 0, -0.195, 0.045); // baseplate
-      muzzle.position.set(0, 0.055, -0.2);
+      // Frame: dust cover under the slide + grip angled back, mag well in grip.
+      box(group, 0.046, 0.05, 0.2, poly, 0, -0.02, -0.03); // dust cover / lower frame
+      box(group, 0.044, 0.026, 0.12, accent, 0, -0.046, -0.07); // underbarrel rail
+      box(group, 0.056, 0.155, 0.082, poly, 0, -0.105, 0.06, -0.22); // grip (raked back)
+      box(group, 0.05, 0.02, 0.086, accent, 0, -0.18, 0.066, -0.22); // grip floorplate
+      triggerGuard(0, -0.018, 0.0);
+      box(group, 0.01, 0.028, 0.012, accent, 0, -0.034, 0.002); // trigger
+      box(group, 0.016, 0.026, 0.02, accent, 0, 0.052, 0.108, -0.55); // exposed hammer (rear)
+      // Slide (upper, travels back on fire): body + flat top + serrations + sights.
+      box(slide, 0.048, 0.05, 0.235, metal, 0, 0.05, -0.03); // slide body
+      box(slide, 0.05, 0.018, 0.235, accent, 0, 0.076, -0.03); // top flat
+      for (let i = 0; i < 6; i++) box(slide, 0.05, 0.04, 0.005, poly, 0, 0.05, 0.06 + i * 0.013); // rear serrations
+      for (let i = 0; i < 4; i++) box(slide, 0.05, 0.04, 0.005, poly, 0, 0.05, -0.13 + i * 0.013); // front serrations
+      box(slide, 0.03, 0.016, 0.012, metal, 0, 0.086, 0.1); // rear sight
+      box(slide, 0.012, 0.018, 0.012, metal, 0, 0.087, -0.14); // front sight
+      // Exposed barrel at the muzzle (fixed to the frame).
+      cyl(group, 0.011, 0.05, steel, 0, 0.05, -0.165);
+      // Magazine - drops + swaps on reload.
+      box(mag, 0.042, 0.15, 0.07, poly, 0, -0.11, 0.06); // mag body
+      box(mag, 0.05, 0.016, 0.078, accent, 0, -0.19, 0.06); // baseplate
+      muzzle.position.set(0, 0.05, -0.19);
       break;
     }
     case WeaponType.AR: {
@@ -134,12 +145,37 @@ export function buildWeapon(type: WeaponType): WeaponModel {
       break;
     }
     case WeaponType.Knife: {
-      box(group, 0.032, 0.045, 0.13, poly, 0, -0.02, 0.07); // handle
-      box(group, 0.022, 0.018, 0.022, accent, 0, -0.02, 0.005); // pommel
-      box(group, 0.085, 0.022, 0.022, accent, 0, 0, -0.01); // cross guard
-      box(group, 0.028, 0.06, 0.2, metal, 0, 0.005, -0.15); // blade
-      box(group, 0.012, 0.062, 0.05, accent, 0, 0.005, -0.26); // angled tip
-      muzzle.position.set(0, 0, -0.3);
+      // Handle - dark grip with finger ridges + pommel.
+      box(group, 0.024, 0.032, 0.115, poly, 0, -0.022, 0.08); // handle body
+      for (let i = 0; i < 4; i++) box(group, 0.026, 0.005, 0.013, accent, 0, -0.04, 0.05 + i * 0.02); // grip ridges
+      box(group, 0.026, 0.026, 0.018, accent, 0, -0.022, 0.14); // pommel
+      // Guard / bolster.
+      box(group, 0.062, 0.03, 0.016, accent, 0, -0.012, 0.018); // crossguard
+      box(group, 0.03, 0.03, 0.026, steel, 0, -0.012, -0.002); // bolster
+      // Blade - extruded clip-point profile for a clean tapered silhouette.
+      const bt = 0.006;
+      const blade = new THREE.Shape();
+      blade.moveTo(0, -0.02); // edge at the guard
+      blade.lineTo(0.115, -0.022); // straight edge / belly
+      blade.lineTo(0.175, -0.004); // point
+      blade.lineTo(0.1, 0.022); // clip - spine angles down to the tip
+      blade.lineTo(0, 0.022); // spine at the guard
+      blade.closePath();
+      const bladeGeo = new THREE.ExtrudeGeometry(blade, {
+        depth: bt,
+        bevelEnabled: true,
+        bevelThickness: 0.0012,
+        bevelSize: 0.0012,
+        bevelSegments: 1,
+      });
+      bladeGeo.translate(0, 0, -bt / 2); // centre thickness on X
+      geos.push(bladeGeo);
+      const bladeMesh = new THREE.Mesh(bladeGeo, steel);
+      // local X(length) → world -Z (forward); local Y(height) → world Y.
+      bladeMesh.rotation.y = Math.PI / 2;
+      bladeMesh.position.set(0, -0.018, -0.01);
+      group.add(bladeMesh);
+      muzzle.position.set(0, -0.01, -0.2);
       break;
     }
   }

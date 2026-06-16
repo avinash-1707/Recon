@@ -14,6 +14,17 @@ const lerp = THREE.MathUtils.lerp;
 const HIP = new THREE.Vector3(0.16, -0.17, -0.42);
 const ADS_AIM_Z = -0.17;
 
+// Melee: resting pose + a fixed-duration slash arc (seconds). The slash is a
+// keyframed windup → strike → recover, retriggered on each swing.
+const MELEE_IDLE_POS = new THREE.Vector3(0.15, -0.1, -0.4);
+const MELEE_IDLE_ROT = new THREE.Vector3(-0.2, 1.1, 0.72);
+const MELEE_SLASH_TIME = 0.32;
+// Offsets (relative to idle) at the windup peak (A) and the end of the strike (B).
+const SLASH_A = { x: 0.05, y: 0.07, z: 0.02, rx: -0.4, ry: -0.28, rz: 0.62 };
+const SLASH_B = { x: -0.2, y: -0.14, z: -0.13, rx: 0.46, ry: 0.42, rz: -1.0 };
+const easeIn = (k: number): number => k * k;
+const easeOut = (k: number): number => 1 - (1 - k) * (1 - k);
+
 const ALL: ReadonlyArray<WeaponType> = [
   WeaponType.Pistol,
   WeaponType.AR,
@@ -41,6 +52,10 @@ export class ViewmodelSystem implements GameModule {
   private readonly models = new Map<WeaponType, WeaponModel>();
   private current: WeaponType = WeaponType.Pistol;
   private bob = 0;
+  // Melee slash animator state.
+  private slashT = 0;
+  private slashing = false;
+  private prevRecoil = 0;
   private armGeo: THREE.BufferGeometry | null = null;
   private armMat: THREE.Material | null = null;
 
@@ -73,7 +88,7 @@ export class ViewmodelSystem implements GameModule {
     if (cur) cur.group.visible = true;
   }
 
-  update(): void {
+  update(dt: number): void {
     const cam = this.cam;
     if (!cam) return;
 
@@ -107,10 +122,49 @@ export class ViewmodelSystem implements GameModule {
 
     const meleeW = WEAPONS[this.current].melee;
     if (meleeW) {
-      // knife slash arc driven by the recoil pulse (1 at strike, decays)
-      const sw = recoil;
-      this.hold.position.set(HIP.x * 0.5 + bobX, HIP.y + bobY - raise * 0.25 + sw * 0.05, HIP.z * 0.7 + sw * 0.12);
-      this.hold.rotation.set(-sw * 0.8 + raise * 0.3, sw * 1.1, -sw * 0.6);
+      // Retrigger the slash on a swing (recoil rising edge), then advance the
+      // animator on its own timeline - decoupled from the short recoil decay.
+      if (recoil > this.prevRecoil + 0.01) {
+        this.slashing = true;
+        this.slashT = 0;
+      }
+      if (this.slashing) {
+        this.slashT += dt / MELEE_SLASH_TIME;
+        if (this.slashT >= 1) {
+          this.slashT = 1;
+          this.slashing = false;
+        }
+      }
+
+      // Keyframed windup (ease-out) → strike (ease-in) → recover (ease-out).
+      let ox = 0, oy = 0, oz = 0, orx = 0, ory = 0, orz = 0;
+      const t = this.slashT;
+      if (this.slashing || t > 0) {
+        if (t < 0.25) {
+          const e = easeOut(t / 0.25);
+          ox = SLASH_A.x * e; oy = SLASH_A.y * e; oz = SLASH_A.z * e;
+          orx = SLASH_A.rx * e; ory = SLASH_A.ry * e; orz = SLASH_A.rz * e;
+        } else if (t < 0.52) {
+          const e = easeIn((t - 0.25) / 0.27);
+          ox = lerp(SLASH_A.x, SLASH_B.x, e); oy = lerp(SLASH_A.y, SLASH_B.y, e); oz = lerp(SLASH_A.z, SLASH_B.z, e);
+          orx = lerp(SLASH_A.rx, SLASH_B.rx, e); ory = lerp(SLASH_A.ry, SLASH_B.ry, e); orz = lerp(SLASH_A.rz, SLASH_B.rz, e);
+        } else {
+          const e = easeOut((t - 0.52) / 0.48);
+          ox = lerp(SLASH_B.x, 0, e); oy = lerp(SLASH_B.y, 0, e); oz = lerp(SLASH_B.z, 0, e);
+          orx = lerp(SLASH_B.rx, 0, e); ory = lerp(SLASH_B.ry, 0, e); orz = lerp(SLASH_B.rz, 0, e);
+        }
+      }
+
+      this.hold.position.set(
+        MELEE_IDLE_POS.x + ox + bobX,
+        MELEE_IDLE_POS.y + oy + bobY - raise * 0.25,
+        MELEE_IDLE_POS.z + oz,
+      );
+      this.hold.rotation.set(
+        MELEE_IDLE_ROT.x + orx + raise * 0.3,
+        MELEE_IDLE_ROT.y + ory,
+        MELEE_IDLE_ROT.z + orz,
+      );
     } else {
       // ADS target places the sight on the camera centre line.
       const so = model ? model.sightOffset : HIP;
@@ -121,6 +175,7 @@ export class ViewmodelSystem implements GameModule {
       );
       this.hold.rotation.set(-recoil * 0.18 - reloadRot + raise * 0.3, 0, 0);
     }
+    this.prevRecoil = recoil; // track for the melee rising-edge swing detector
 
     // Hide a scoped weapon's model at full ADS so the scope overlay reads clean.
     const scoped = WEAPONS[this.current].scope;
