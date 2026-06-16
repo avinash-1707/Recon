@@ -13,6 +13,7 @@ import { castShot, type ShotHit } from "@/game/physics/raycast";
 import type { FxSystem } from "@/game/systems/effects";
 import type { AudioSystem } from "@/game/systems/audio";
 import { reportHit } from "@/game/systems/combat";
+import { emitLocalShot } from "@/game/net/combatBus";
 
 const MAX_PITCH = THREE.MathUtils.degToRad(88);
 const _origin = new THREE.Vector3();
@@ -149,6 +150,9 @@ export class WeaponSystem implements GameModule {
     const from = weaponRuntime.muzzlePos.lengthSq() > 0 ? weaponRuntime.muzzlePos : _origin;
     this.fx.spawnTracer(from, this.hit.point, def.tracerColor);
     this.fx.spawnMuzzleFlash(from, def.tracerColor);
+
+    // Relay to peers (no-op in single-player — no subscribers). Read synchronously.
+    emitLocalShot({ origin: from, dir: _dir, tracerColor: def.tracerColor, weapon: def.type });
 
     // damage resolution → hitmarker feedback (white body / red head)
     if (this.hit.hit && this.hit.collider) {

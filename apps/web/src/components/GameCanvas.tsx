@@ -18,13 +18,16 @@ import { Hud } from "@/components/Hud";
 import { useIsTouch } from "@/hooks/useIsTouch";
 import { EngineProvider, EngineRunner } from "@/game/core/engineContext";
 import { useWorldStore } from "@/game/state/worldStore";
+import { MultiplayerSystems } from "@/components/MultiplayerSystems";
 import { Player } from "@/game/entities/Player";
 import { WeaponRig } from "@/game/entities/WeaponRig";
 import { Enemies } from "@/game/entities/Enemies";
+import { RemotePlayers } from "@/game/entities/RemotePlayers";
 import { HealthPickups } from "@/game/entities/HealthPickups";
 import { AmmoPickups } from "@/game/entities/AmmoPickups";
 import { JumpPads } from "@/game/entities/JumpPads";
 import TownLevel from "@/game/levels/TownLevel";
+import type { GameMode } from "@/game/state/appStore";
 
 function Lights() {
   return (
@@ -55,7 +58,7 @@ function Lights() {
  * engine's useFrame so we read fresh interpolated transforms. `paused`/`debug`
  * are reactive config (toggled rarely) - fine to read with a selector here.
  */
-function World() {
+function World({ mode }: { mode: GameMode }) {
   const paused = useWorldStore((s) => s.paused);
   const debug = useWorldStore((s) => s.debugPhysics);
   return (
@@ -72,7 +75,15 @@ function World() {
       <TownLevel />
       <Player />
       <WeaponRig />
-      <Enemies />
+      {/* Single-player: AI enemies. Multiplayer: relay + remote players (no AI). */}
+      {mode === "multiplayer" ? (
+        <>
+          <MultiplayerSystems />
+          <RemotePlayers />
+        </>
+      ) : (
+        <Enemies />
+      )}
       <HealthPickups />
       <AmmoPickups />
       <JumpPads />
@@ -87,7 +98,7 @@ function ProgressOverlay() {
   return <LoadingScreen progress={progress} label={item ? `Loading ${item}` : "Loading"} />;
 }
 
-export function GameCanvas() {
+export function GameCanvas({ mode }: { mode: GameMode }) {
   const isTouch = useIsTouch();
   const debug = useWorldStore((s) => s.debugPhysics);
   return (
@@ -105,7 +116,7 @@ export function GameCanvas() {
         <Suspense fallback={null}>
           <Lights />
           <EngineProvider>
-            <World />
+            <World mode={mode} />
           </EngineProvider>
           <ContactShadows position={[0, 0.01, 0]} opacity={0.35} scale={60} blur={2.6} far={14} frames={1} />
           <Preload all />

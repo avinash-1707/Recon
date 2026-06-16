@@ -43,6 +43,12 @@ export class Engine {
     removed.dispose();
   }
 
+  /** Look up a registered module by id (e.g. to share the FX pool across
+   *  systems). Returns undefined if not registered yet. */
+  getModule<T extends GameModule = GameModule>(id: string): T | undefined {
+    return this.modules.find((m) => m.id === id) as T | undefined;
+  }
+
   init(ctx: GameContext): void {
     this.ctx = ctx;
     for (const m of this.modules) m.init(ctx);
