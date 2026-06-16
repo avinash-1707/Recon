@@ -95,24 +95,32 @@ Adding content is data, not new branches:
 |-------|--------|
 | WASD | Move |
 | Shift | Sprint |
-| Ctrl | Crouch |
+| Ctrl / C | Crouch |
 | Space | Jump |
-| 1 / 2 / 3 | Pistol / AR / Sniper |
+| 1 / 2 / 3 / 4 | Pistol / AR / Sniper / Knife |
 | R | Reload |
-| LMB | Fire |
+| LMB | Fire / melee swing |
 | RMB | Aim down sights |
-| V | Toggle first / third person |
 | E | Interact |
+| Esc | Release cursor |
 
-## Build order (one milestone at a time, each committed)
+First-person only. `?test=1` forces input active without real pointer lock (for headless smoke tests).
 
-1. **Scaffold** ✅ — Next + r3f + drei + rapier + zustand, folder tree, booting canvas, loading screen.
-2. Core loop + Rapier world (fixed timestep + render interpolation).
-3. Character controller (accel/damping, sprint, crouch, jump, pointer lock).
-4. Dual FP/TP camera (V toggle, collision-aware TP spring arm).
-5. Flat ground + building level + cover props (colliders).
-6. Player viewmodel + 3 weapons + weapon FSM (idle/fire/reload/ADS).
-7. Enemy GLB + patrol FSM + vision cone, velocity-driven animation.
-8. HUD: health, ammo/mag, weapon, detection indicator, camera mode.
+## Gameplay
 
-Each milestone is a rollback-safe commit.
+- **Map** — enclosed town (~20 buildings: 1/2-storey houses + warehouses) around a central plaza with streets and cover. Houses have textured walls, **breakable translucent windows** (shoot to shatter, then see/shoot through), interior **stairs** to a second floor, and standable roofs. **Jump pads** in the streets launch you onto rooftops.
+- **Weapons** — pistol / AR (red-dot) / sniper (scope) / combat knife, each a typed config; animated viewmodel (fire/reload/ADS/swing), hitscan with **headshot** (red) vs **bodyshot** (white) hitmarkers, pooled tracers + muzzle flashes, procedural WebAudio SFX, auto-reload.
+- **Enemies** — rigged soldiers (idle/walk/run blend) with a patrol → alert → search → combat FSM + vision cone; they carry visible rifles, only fire while stationary, and spawn dispersed. On death they vanish and leave a blood decal.
+- **Survival** — health + ammo pickups (mostly inside houses); damage vignette; on death, release cursor → **REDEPLOY** respawns you inside a random house with full health + ammo.
+
+## Build order (each a rollback-safe commit)
+
+1. **Scaffold** — Next + r3f + drei + rapier + zustand.
+2. **Core loop + Rapier** — fixed timestep + render interpolation.
+3. **Character controller** — accel/damping, sprint, crouch, jump, pointer lock.
+4. **Camera** — first-person (third-person was later removed).
+5. **Level + cover** — ground, buildings, props, colliders → later expanded into the town.
+6. **Weapons** — viewmodel + FSM (idle/fire/reload/ADS) + hitscan + FX + audio + knife.
+7. **Enemy AI** — GLB + patrol/alert/search/combat FSM + vision cone + headshots.
+8. **HUD** — minimal COD-style: health, ammo, detection, hostiles, hitmarkers.
+9. **Polish** — town map, breakable windows, stairs, jump pads, pickups, respawn.
