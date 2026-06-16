@@ -6,6 +6,7 @@ import { useWeaponStore } from "@/game/state/weaponStore";
 import { useHudStore, AlertLevel } from "@/game/state/hudStore";
 import { respawnPlayer } from "@/game/systems/respawn";
 import { useAppStore } from "@/game/state/appStore";
+import { Scoreboard } from "@/components/Scoreboard";
 import { WEAPONS } from "@/game/weapons/defs";
 
 const ACCENT = "#cfe0e6";
@@ -160,6 +161,7 @@ export function Hud() {
       <HealthReadout />
       <AmmoReadout />
       <DamageVignette />
+      <Scoreboard />
       <GameOver />
     </>
   );

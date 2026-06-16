@@ -1,35 +1,104 @@
 # Recon
 
-A browser first-person shooter built with Next.js + Three.js and Rapier physics.
-You drop into an enclosed town of houses and warehouses, four weapons in the
-loadout, and clear out roaming soldiers. The bar is **smooth and playable** (target
-stable 60 fps), not photoreal. COD/PUBG-flavoured arcade combat.
+A browser first-person shooter built with Next.js + Three.js and Rapier physics,
+in two modes:
+
+- **Single player** — drop into an enclosed town, four weapons in the loadout,
+  and clear out roaming AI soldiers.
+- **Multiplayer** — PvP free-for-all: create or join a room by code and fight
+  other players in the same town (no AI). Optional sign-in saves your stats.
+
+The bar is **smooth and playable** (target stable 60 fps), not photoreal —
+COD/PUBG-flavoured arcade combat.
+
+## Monorepo
+
+A [Turborepo](https://turbo.build) monorepo on Bun workspaces.
+
+```
+recon/
+├── apps/
+│   ├── web/        Next.js client — game canvas, menu/lobby, HUD (both modes)
+│   └── server/     Hono REST + socket.io relay (+ Better Auth handler)
+├── packages/
+│   ├── protocol/   @recon/protocol — shared zod socket/REST contract + types
+│   ├── db/         @recon/db — Drizzle schema + Postgres/Neon client + migrations
+│   ├── auth/       @recon/auth — Better Auth instance (email+password only)
+│   ├── tsconfig/   shared tsconfig bases
+│   └── eslint-config/  shared flat ESLint config
+└── turbo.json
+```
+
+Packages ship raw TypeScript (no build step) and are consumed via workspace
+imports — Bun runs them directly; Next transpiles them (`transpilePackages`).
 
 ## Stack
 
-| Concern   | Choice |
-|-----------|--------|
-| Framework | Next.js 16 (App Router), strict TypeScript |
-| Rendering | `@react-three/fiber` + `@react-three/drei` (Three.js) |
-| Physics   | `@react-three/rapier` (Rapier WASM) |
-| State     | `zustand` (transient subscriptions in the loop, not reactive setters) |
-| Audio     | Web Audio API (procedural synthesis) |
-| Tooling   | bun (install + scripts), ESLint, `tsc --noEmit`, puppeteer-core smoke test |
+| Concern    | Choice |
+|------------|--------|
+| Monorepo   | Turborepo + Bun workspaces |
+| Client     | Next.js 16 (App Router), `@react-three/fiber` + `drei` (Three.js), `@react-three/rapier` |
+| State      | `zustand` (transient subscriptions in the loop, not reactive setters) |
+| Backend    | [Hono](https://hono.dev) on `@hono/node-server` |
+| Realtime   | `socket.io` (client-authoritative relay) |
+| Database   | Postgres via [Neon](https://neon.tech), [Drizzle ORM](https://orm.drizzle.team) |
+| Auth       | [Better Auth](https://better-auth.com) — email + password only (optional) |
+| Validation | `zod` at every socket/REST boundary |
+| Tooling    | Bun, ESLint (flat), `tsc --noEmit`, puppeteer-core smoke tests |
 
 ## Run
 
 ```bash
 bun install
-bun run dev        # http://localhost:3000
-bun run typecheck  # strict tsc, no emit
+bun run dev          # turbo: web on :3000 + server on :8787 (parallel)
+bun run typecheck    # tsc --noEmit across all packages
 bun run lint
+bun run build        # builds the web app
 ```
 
-Then open `http://localhost:3000` and click the canvas to lock the pointer and play.
+Open `http://localhost:3000`, pick **Single Player** or **Multiplayer**, then
+click the canvas to lock the pointer and play.
 
-The WebGL canvas is loaded **client-only** (`next/dynamic`, `ssr: false`) behind a
-DOM loading screen, so WebGL never runs on the server. `reactStrictMode` is **off**
-(`next.config.ts`) because StrictMode's double-invoke double-initialises Rapier/r3f.
+### Environment
+
+Copy the example env files and fill them in:
+
+```bash
+cp apps/server/.env.example apps/server/.env   # PORT, CLIENT_ORIGIN, DATABASE_URL, BETTER_AUTH_*
+cp apps/web/.env.example    apps/web/.env       # NEXT_PUBLIC_SERVER_URL
+cp packages/db/.env.example packages/db/.env    # DATABASE_URL (for migrations)
+```
+
+- **Guest multiplayer needs no database** — without `DATABASE_URL` the relay
+  runs in-memory (rooms/matches/stats are not persisted) and auth is disabled.
+- To **persist match results + stats and enable sign-in**, set `DATABASE_URL`
+  to your Neon pooled connection string and a `BETTER_AUTH_SECRET`
+  (`openssl rand -base64 32`), then apply the schema:
+
+```bash
+bun run db:migrate    # drizzle-kit migrate against DATABASE_URL
+```
+
+## Multiplayer
+
+- **Mode**: PvP free-for-all in the town level; AI enemies are off.
+- **Rooms**: a host creates a room (6-char code) over REST; others join by code.
+  Up to 8 players per room. The lobby shows the live roster; start whenever.
+- **Netcode**: **client-authoritative relay**. Each client owns its own player
+  and broadcasts a ~20 Hz snapshot (position/look/stance/weapon/health); the
+  server validates payloads (zod), stamps the authoritative sender id, and fans
+  events out to the socket.io room. Remote players are interpolated, collidable
+  capsules — your local hitscan hits them and reports the hit to the server, the
+  victim applies the damage. Cheatable by design (a v1 trade-off); the server
+  still validates all input so a bad client can't crash it.
+- **Death**: a brief ELIMINATED beat, then auto-respawn at a scattered spawn.
+- **Auth (optional)**: play as a guest with any handle, or sign in (email +
+  password) so your kills/deaths/matches persist. The server derives your
+  identity from the session cookie on the socket handshake; guests get no stats
+  row. No social login.
+
+The server is a long-lived Node process (socket.io needs a persistent server),
+attached to the same HTTP server as the Hono app via `@hono/node-server`.
 
 ## Controls
 
@@ -43,58 +112,33 @@ DOM loading screen, so WebGL never runs on the server. `reactStrictMode` is **of
 | R | Reload |
 | LMB | Fire (or melee swing) |
 | RMB | Aim down sights |
-| E | Interact |
+| Tab | Scoreboard (multiplayer) |
 | Esc | Release cursor |
 | `` ` `` | Toggle Rapier collider debug |
 | P | Pause / resume the simulation |
 
 First-person only.
 
-## Gameplay
+## Game engine (apps/web)
 
-- **Map** - an enclosed town of ~20 buildings (1- and 2-storey houses plus
-  warehouses) around a central plaza, with streets and scattered cover. Houses
-  have textured walls, **breakable translucent windows** (shoot the glass to
-  shatter it, then see and shoot through the hole), an interior **staircase** to a
-  second floor with landings, and standable roofs. **Jump pads** in the streets
-  launch you onto rooftops.
-- **Weapons** - pistol, AR (red-dot sight), sniper (scope), and a combat knife.
-  Each is a typed config that drives an animated first-person viewmodel
-  (fire / reload / ADS / melee swing). Hitscan firing with **headshot** (red
-  marker) vs **bodyshot** (white marker) feedback, pooled tracers and muzzle
-  flashes, per-weapon procedural gunfire SFX, and auto-reload on empty.
-- **Enemies** - rigged soldiers with idle/walk/run animation blended by speed and
-  a `patrol -> alert -> search -> combat` FSM driven by a vision cone (range +
-  field-of-view + line-of-sight raycast). They carry visible rifles, only fire
-  while stationary, and spawn dispersed across the map. On death they vanish and
-  leave a blood decal.
-- **Survival** - health kits and ammo crates (mostly inside houses) restock you;
-  taking damage flashes a red vignette. On death the cursor is released so you can
-  click **REDEPLOY**, which respawns you inside a random house with full health
-  and ammo.
-
-## Architecture
-
-All gameplay code lives under `src/game`, split by responsibility. UI is plain
-React under `src/components`; reusable React glue under `src/hooks`.
+Gameplay code lives under `apps/web/src/game`, split by responsibility; UI is
+plain React under `apps/web/src/components`.
 
 ```
-src/
+apps/web/src/
   app/            Next App Router (layout, page, globals.css, icon)
-  components/     React UI - GameCanvas, HUD, Crosshair, ScopeOverlay,
-                  PlayOverlay, LoadingScreen, CoreSystems, DevControls
-  hooks/          useGameLoop, usePointerLock
+  components/     React UI — GameShell, GameCanvas, HUD, Scoreboard, menu/, ...
+  hooks/          useGameLoop, usePointerLock, useIsTouch
   game/
-    core/         engine, fixed-timestep clock, GameModule/GameContext types,
-                  React engine provider + runner
+    core/         engine, fixed-timestep clock, GameModule/GameContext types
     systems/      input, camera, weapons, viewmodel, ai, effects, audio, combat
-    entities/     Player, WeaponRig, Enemies, HealthPickups, AmmoPickups, JumpPads,
-                  playerController
+    entities/     Player, WeaponRig, Enemies, RemotePlayers, pickups, playerController
+    net/          socket client, session, NetworkSystem, peer registry, authClient
     weapons/      typed weapon defs, weapon FSM, procedural weapon models
     levels/       TownLevel, House, Building, Props, materials, layout, spawns
     ai/           enemy FSM tuning, EnemyAgent, vision cone
     physics/      hitscan raycast helper
-    state/        zustand stores (player, world, weapons, hud) + transient runtime
+    state/        zustand stores (player, world, weapons, hud, app, net) + runtime
     utils/        object pool, procedural textures, decals
 ```
 
@@ -114,76 +158,44 @@ interface GameModule {
 }
 ```
 
-- The engine runs `fixedUpdate(dt)` in fixed slices (60 Hz) via a `FixedClock`
-  accumulator, then a variable `update(dt, alpha)` pass. `alpha` (0..1) lets
-  render code interpolate between the last two fixed states, so motion stays
-  smooth at any framerate. Rapier runs its own fixed stepper with render
-  interpolation for rigid bodies.
-- `dispose()` is mandatory: geometry, materials, and textures are GPU resources
-  Three.js will not garbage-collect for you.
+The engine runs `fixedUpdate(dt)` in 60 Hz slices via a `FixedClock`
+accumulator, then a variable `update(dt, alpha)` pass where `alpha` (0..1)
+interpolates between the last two fixed states. `GameCanvas` registers different
+modules per mode: single-player adds the AI system; multiplayer adds the
+`NetworkSystem` + remote players and skips AI. `dispose()` is mandatory —
+Three.js won't GC GPU resources for you.
 
 ### Performance rules (target: stable 60 fps)
 
 - No React re-renders in the game loop. Per-frame state lives in a plain mutable
-  `runtime` object; discrete UI state lives in Zustand stores read via **transient
-  subscriptions** (`store.subscribe`) or on discrete events only.
-- **Object pooling** for tracers and muzzle flashes (`FixedPool`) - zero per-frame
-  allocation in the hot loop.
-- **Instanced meshes** for repeated props (crates, barrels); shared materials;
-  baked contact shadows for the static scene.
-
-### Typed configs, no magic values
-
-Weapons, weapon FSM states, AI states, and input bindings are typed enums/configs.
-Adding content is data, not new branches:
-
-- **New weapon**: add a `WeaponDef` in `game/weapons/defs.ts` (damage, rpm, mag,
-  reload, recoil, ADS fov, melee flag, ...) plus a model case in `models.ts`. The
-  FSM, viewmodel, hitscan, FX, and HUD all read the def.
-- **New enemy**: clones the shared rigged GLB per spawn; add a spawn entry in
-  `levels/spawns.ts`. The AI FSM and animation driver are shared.
-- **New level**: add building layout in `levels/layout.ts` + a level component;
-  spawn/patrol data in `levels/spawns.ts`.
+  `runtime` object; discrete UI state lives in Zustand stores read via transient
+  subscriptions or on discrete events only.
+- Object pooling for tracers/flashes (`FixedPool`); instanced meshes for repeated
+  props; shared materials; baked contact shadows for the static scene.
+- Network snapshots are sent at ~20 Hz (not 60) and interpolated on receivers.
 
 ## Assets
 
-- **Enemy model**: `public/models/Soldier.glb` - the rigged soldier from the
-  three.js examples (idle / walk / run clips), cloned per enemy with
-  `SkeletonUtils`.
-- **Everything else is procedural / code-built**: weapons, buildings, houses,
-  props, ground and house textures (canvas-generated), blood decals, and all
-  gunfire/reload/melee audio (Web Audio synthesis). This keeps the project free of
-  asset-download dependencies and gives full control over animation.
-
-To use real CC0 GLB weapons/props instead, drop them in `public/models` and load
-them in place of the procedural builders.
+- **Soldier model**: `apps/web/public/models/Soldier.glb` — the rigged soldier
+  from the three.js examples (idle/walk/run clips), cloned per enemy and per
+  remote player with `SkeletonUtils`.
+- **Everything else is procedural / code-built**: weapons, buildings, props,
+  textures (canvas-generated), decals, and all audio (Web Audio synthesis).
 
 ## Testing
 
-`scripts/smoke.mjs` is a headless smoke test (puppeteer-core + system Chrome) that
-loads the game, drives input, captures console errors, and screenshots:
+- **Relay smoke** (`apps/server/scripts/smoke.ts`): two socket.io clients join a
+  room and exercise snapshot relay, target-only hit delivery, and the death
+  tally. Point it at a running server:
 
-```bash
-bun run dev &                                   # serve first
-node scripts/smoke.mjs "http://localhost:3000/?test=1" /tmp/out.png
-```
+  ```bash
+  cd apps/server && bun run start &     # or PORT=8799 bun src/index.ts
+  PORT=8787 bun run smoke
+  ```
 
-The `?test=1` query enables a dev-only input hook so a headless browser can drive
-the mouse without a real pointer lock (it is inert in normal play).
-
-## Build history
-
-Built one milestone at a time, each a rollback-safe commit:
-
-1. Scaffold (Next + r3f + drei + rapier + zustand).
-2. Core loop + Rapier world (fixed timestep + render interpolation).
-3. Kinematic character controller (accel/damping, sprint, crouch, jump, pointer lock).
-4. First-person camera.
-5. Level + cover props with colliders (later expanded into the town).
-6. Weapons: animated viewmodel + FSM + hitscan + pooled FX + audio + knife.
-7. Enemy AI: GLB + patrol/alert/search/combat FSM + vision cone + headshots.
-8. Minimal HUD (health, ammo, detection, hostiles, hitmarkers).
-9. Polish: town map, breakable windows, interior stairs, jump pads, pickups, house respawn.
+- **Web smoke** (`apps/web/scripts/smoke.mjs`): headless puppeteer-core that
+  loads the game, drives input, and screenshots (`?test=1` enables a dev-only
+  input hook).
 
 ## License
 
