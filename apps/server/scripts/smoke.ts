@@ -91,6 +91,13 @@ async function main(): Promise<void> {
   const selfA = await joinRoom(a, roomId, "alpha");
   ok(`both joined (A=${selfA.id.slice(0, 6)}, B=${selfB.id.slice(0, 6)})`);
 
+  // 2b. A second join from an already-joined socket must be rejected (C1 guard).
+  const rejoinOk = await new Promise<boolean>((resolve) => {
+    a.emit("joinRoom", { roomId, handle: "alpha" }, (res) => resolve(res.ok));
+  });
+  if (rejoinOk) fail("second join not rejected — room-leak guard missing");
+  ok("double-join rejected");
+
   // 3. Snapshot relay: A -> B.
   const peerStateP = waitFor(b, "peerState", "peerState");
   a.emit("state", {

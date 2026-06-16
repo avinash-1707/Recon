@@ -24,12 +24,20 @@ type GameNamespace = Namespace<
  *  sender id, and fans events out to the socket.io room. */
 export function attachSockets(game: GameNamespace, rooms: RoomManager): void {
   game.on("connection", (socket) => {
+    // Fresh connection: reset per-match fields. `userId` uses ??= so the CP6
+    // auth-handshake middleware (which runs before this handler) can pre-set
+    // it; handle/roomId are always reset here.
     socket.data.handle = "";
     socket.data.roomId = null;
-    // userId is populated by the auth handshake middleware in CP6.
     socket.data.userId ??= null;
 
     socket.on("joinRoom", (payload, ack) => {
+      // One room per socket. Without this, a re-join leaks the old membership
+      // (the socket lingers in the old room's player map → it never empties).
+      if (socket.data.roomId) {
+        ack({ ok: false, error: "already in a room" });
+        return;
+      }
       const parsed = joinRoomSchema.safeParse(payload);
       if (!parsed.success) {
         ack({ ok: false, error: "invalid join payload" });
@@ -79,6 +87,10 @@ export function attachSockets(game: GameNamespace, rooms: RoomManager): void {
       if (!roomId) return;
       const parsed = hitInputSchema.safeParse(input);
       if (!parsed.success) return;
+      // Confine to the sender's room: the target must be a co-member. Otherwise
+      // a client could inject damage into an unrelated match with any socket id.
+      const room = rooms.get(roomId);
+      if (!room || !room.players.has(parsed.data.targetId)) return;
       // Deliver only to the target, who applies the damage to its local player.
       game.to(parsed.data.targetId).emit("peerHit", {
         ...parsed.data,
@@ -103,12 +115,13 @@ export function attachSockets(game: GameNamespace, rooms: RoomManager): void {
     socket.on("disconnect", () => handleLeave(socket.id));
 
     function handleLeave(socketId: string): void {
-      const left = rooms.leave(socketId);
-      if (!left) return;
-      if (!left.emptied) {
-        game.to(left.room.id).emit("playerLeft", socketId);
-        game.to(left.room.id).emit("scoreUpdate", rooms.scoreboard(left.room));
+      const affected = rooms.leave(socketId);
+      for (const { room, emptied } of affected) {
+        if (emptied) continue;
+        game.to(room.id).emit("playerLeft", socketId);
+        game.to(room.id).emit("scoreUpdate", rooms.scoreboard(room));
       }
+      socket.data.roomId = null;
     }
   });
 }

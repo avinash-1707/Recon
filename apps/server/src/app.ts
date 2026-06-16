@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import {
   createRoomSchema,
+  handleSchema,
   type CreateRoomResponse,
   type RoomInfoResponse,
 } from "@recon/protocol";
@@ -23,7 +24,12 @@ export function createApp(rooms: RoomManager): Hono {
     if (!parsed.success) {
       return c.json({ error: "invalid request body" }, 400);
     }
-    const room = rooms.create(parsed.data.handle, parsed.data.mode);
+    let room;
+    try {
+      room = rooms.create(parsed.data.handle, parsed.data.mode);
+    } catch {
+      return c.json({ error: "server at capacity, try again later" }, 503);
+    }
     const res: CreateRoomResponse = {
       roomId: room.id,
       hostHandle: room.hostHandle,
@@ -46,7 +52,9 @@ export function createApp(rooms: RoomManager): Hono {
   });
 
   app.get("/api/players/:handle/stats", async (c) => {
-    const stats = await getPlayerStats(c.req.param("handle"));
+    const handle = handleSchema.safeParse(c.req.param("handle"));
+    if (!handle.success) return c.json({ error: "invalid handle" }, 400);
+    const stats = await getPlayerStats(handle.data);
     if (!stats) return c.json({ error: "no stats for this handle" }, 404);
     return c.json(stats);
   });

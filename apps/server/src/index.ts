@@ -32,6 +32,13 @@ const io = new Server<
 
 attachSockets(io.of(GAME_NAMESPACE), rooms);
 
+// Reap rooms left empty for 10 min (chiefly created-but-never-joined ones).
+const reaper = setInterval(() => {
+  const dropped = rooms.sweepIdle(10 * 60 * 1000);
+  if (dropped > 0) console.log(`[server] reaped ${dropped} idle room(s)`);
+}, 60 * 1000);
+reaper.unref();
+
 console.log(`[server] socket.io namespace ${GAME_NAMESPACE} ready`);
 console.log(`[server] CORS origin: ${env.CLIENT_ORIGIN}`);
 console.log(
@@ -40,6 +47,7 @@ console.log(
 
 async function shutdown(): Promise<void> {
   console.log("\n[server] shutting down…");
+  clearInterval(reaper);
   io.close();
   await closeDb();
   process.exit(0);

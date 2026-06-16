@@ -16,10 +16,14 @@ export type Vec3 = z.infer<typeof vec3Schema>;
 
 export const handleSchema = z.string().trim().min(HANDLE_MIN).max(HANDLE_MAX);
 
+// Normalize to uppercase at the boundary so REST lookup and socket join agree
+// on the canonical code regardless of how the user typed it.
 export const roomCodeSchema = z
   .string()
+  .trim()
+  .toUpperCase()
   .length(ROOM_CODE_LENGTH)
-  .regex(/^[A-Z0-9]+$/, "room code must be uppercase alphanumeric");
+  .regex(/^[A-Z0-9]+$/, "room code must be alphanumeric");
 
 export const stanceSchema = z.enum(["stand", "crouch"]);
 export type Stance = z.infer<typeof stanceSchema>;

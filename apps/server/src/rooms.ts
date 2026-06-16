@@ -9,6 +9,10 @@ import {
 } from "@recon/protocol";
 import { finalizeMatch, mirrorRoom } from "./persistence";
 
+/** Hard cap on simultaneously live rooms — a backstop against creation spam
+ *  exhausting memory (paired with the idle sweep in index.ts). */
+const MAX_LIVE_ROOMS = 5000;
+
 export interface RoomPlayer {
   id: string; // socket id
   handle: string;
@@ -54,6 +58,9 @@ export class RoomManager {
   }
 
   create(hostHandle: string, mode: GameMode): Room {
+    if (this.rooms.size >= MAX_LIVE_ROOMS) {
+      throw new Error("server at room capacity");
+    }
     const room: Room = {
       id: this.generateCode(),
       hostHandle,
@@ -118,19 +125,37 @@ export class RoomManager {
     return room;
   }
 
-  /** Remove a player. Finalizes + deletes the room once it empties. */
-  leave(socketId: string): { room: Room; emptied: boolean } | undefined {
+  /** Remove a player from whatever room(s) it's in (normally one). Finalizes +
+   *  deletes any room that empties. Returns every affected room so the caller
+   *  can broadcast. Scanning all rooms makes a stray double-membership
+   *  self-heal rather than leak. */
+  leave(socketId: string): { room: Room; emptied: boolean }[] {
+    const affected: { room: Room; emptied: boolean }[] = [];
     for (const room of this.rooms.values()) {
       if (!room.players.has(socketId)) continue;
       room.players.delete(socketId);
-      const emptied = room.players.size === 0;
-      if (emptied) {
-        this.rooms.delete(room.id);
-        void finalizeMatch(room);
-      }
-      return { room, emptied };
+      affected.push({ room, emptied: room.players.size === 0 });
     }
-    return undefined;
+    for (const entry of affected) {
+      if (entry.emptied) {
+        this.rooms.delete(entry.room.id);
+        void finalizeMatch(entry.room);
+      }
+    }
+    return affected;
+  }
+
+  /** Drop rooms empty past the TTL — chiefly rooms created over REST but never
+   *  joined, which never reach the leave() path. */
+  sweepIdle(maxIdleMs: number, now = Date.now()): number {
+    const stale: Room[] = [];
+    for (const room of this.rooms.values()) {
+      if (room.players.size === 0 && now - room.startedAt > maxIdleMs) {
+        stale.push(room);
+      }
+    }
+    for (const room of stale) this.rooms.delete(room.id);
+    return stale.length;
   }
 
   toState(room: Room): RoomState {
