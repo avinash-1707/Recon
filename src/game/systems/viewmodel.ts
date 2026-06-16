@@ -4,13 +4,15 @@ import { SystemOrder } from "@/game/core/types";
 import { playerRuntime, weaponRuntime } from "@/game/state/runtime";
 import { useWeaponStore } from "@/game/state/weaponStore";
 import { WeaponType } from "@/game/weapons/types";
+import { WEAPONS } from "@/game/weapons/defs";
 import { buildWeapon, type WeaponModel } from "@/game/weapons/models";
 
 const lerp = THREE.MathUtils.lerp;
 
-// Pose offsets (camera-local). Hip = lowered right; ADS = centered on the sight.
+// Hip pose (camera-local). ADS pose is derived per weapon so the sight lands on
+// the camera centre line (no gun obstructing the optic).
 const HIP = new THREE.Vector3(0.16, -0.17, -0.42);
-const ADS = new THREE.Vector3(0.0, -0.045, -0.3);
+const ADS_AIM_Z = -0.17;
 
 const ALL: ReadonlyArray<WeaponType> = [WeaponType.Pistol, WeaponType.AR, WeaponType.Sniper];
 
@@ -88,6 +90,7 @@ export class ViewmodelSystem implements GameModule {
     const recoil = weaponRuntime.recoil;
     const rl = weaponRuntime.reload;
     const raise = 1 - weaponRuntime.switchT; // 1 when fully lowered
+    const model = this.models.get(this.current);
 
     const speed = Math.min(Math.hypot(playerRuntime.velocity.x, playerRuntime.velocity.z), 7);
     this.bob += 0.016 * speed * 1.3;
@@ -97,14 +100,23 @@ export class ViewmodelSystem implements GameModule {
     const reloadDip = Math.sin(Math.min(rl, 1) * Math.PI) * 0.12;
     const reloadRot = Math.sin(Math.min(rl, 1) * Math.PI) * 0.5;
 
+    // ADS target places the sight on the camera centre line.
+    const so = model ? model.sightOffset : HIP;
+    const adsX = -so.x;
+    const adsY = -so.y;
+    const adsZ = ADS_AIM_Z - so.z;
+
     this.hold.position.set(
-      lerp(HIP.x, ADS.x, ads) + bobX,
-      lerp(HIP.y, ADS.y, ads) + bobY - raise * 0.25 - reloadDip,
-      lerp(HIP.z, ADS.z, ads) + recoil * 0.06,
+      lerp(HIP.x, adsX, ads) + bobX,
+      lerp(HIP.y, adsY, ads) + bobY - raise * 0.25 - reloadDip,
+      lerp(HIP.z, adsZ, ads) + recoil * 0.06,
     );
     this.hold.rotation.set(-recoil * 0.18 - reloadRot + raise * 0.3, 0, 0);
 
-    const model = this.models.get(this.current);
+    // Hide a scoped weapon's model at full ADS so the scope overlay reads clean.
+    const scoped = WEAPONS[this.current].scope;
+    this.root.visible = !(scoped && ads > 0.55);
+
     if (model) {
       model.slide.position.z = weaponRuntime.slide * 0.05; // travels back on fire
       const magDrop = Math.sin(Math.min(rl, 1) * Math.PI);

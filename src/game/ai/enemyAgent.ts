@@ -66,6 +66,12 @@ export class EnemyAgent {
   private readonly vis: VisionResult = { visible: false, distance: 0 };
   private readonly eye = new THREE.Vector3();
   private readonly forward = new THREE.Vector3();
+  // visible weapon held by the enemy + its muzzle flash
+  private readonly gunRig = new THREE.Group();
+  private gunFlash!: THREE.Mesh;
+  private flashTimer = 0;
+  private readonly gunGeos: THREE.BufferGeometry[] = [];
+  private readonly gunMats: THREE.Material[] = [];
 
   constructor(
     world: World,
@@ -102,6 +108,36 @@ export class EnemyAgent {
     this.run = pickAction(this.mixer, clips, "run", 2);
     this.active = this.idle;
     this.active?.play();
+
+    this.buildGun();
+    scene.add(this.gunRig);
+  }
+
+  /** Simple rifle held by the enemy, muzzle toward +Z, with a muzzle flash. */
+  private buildGun(): void {
+    const metal = new THREE.MeshStandardMaterial({ color: 0x202428, roughness: 0.5, metalness: 0.7 });
+    const wood = new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.8 });
+    this.gunMats.push(metal, wood);
+    const addBox = (w: number, h: number, d: number, mat: THREE.Material, x: number, y: number, z: number) => {
+      const g = new THREE.BoxGeometry(w, h, d);
+      this.gunGeos.push(g);
+      const m = new THREE.Mesh(g, mat);
+      m.position.set(x, y, z);
+      this.gunRig.add(m);
+    };
+    addBox(0.07, 0.1, 0.4, metal, 0, 0, 0.05); // body
+    addBox(0.04, 0.04, 0.34, metal, 0, 0.02, 0.3); // barrel
+    addBox(0.06, 0.16, 0.07, wood, 0, -0.1, 0); // mag
+    addBox(0.06, 0.1, 0.18, wood, 0, -0.02, -0.18); // stock
+
+    const fg = new THREE.SphereGeometry(0.13, 8, 8);
+    this.gunGeos.push(fg);
+    const fm = new THREE.MeshBasicMaterial({ color: 0xffd9a0, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+    this.gunMats.push(fm);
+    this.gunFlash = new THREE.Mesh(fg, fm);
+    this.gunFlash.position.set(0, 0.02, 0.52);
+    this.gunFlash.visible = false;
+    this.gunRig.add(this.gunFlash);
   }
 
   /** Logic step (fixed dt). */
@@ -163,6 +199,24 @@ export class EnemyAgent {
     _lerp.lerpVectors(this.prevPos, this.pos, alpha);
     this.root.position.set(_lerp.x, 0, _lerp.z);
     this.root.rotation.y = this.yaw + FACE_OFFSET;
+
+    // hold the gun at the right hand, pointing along facing (yaw)
+    if (!this.dead) {
+      const fx = Math.sin(this.yaw);
+      const fz = Math.cos(this.yaw);
+      const rx = Math.cos(this.yaw);
+      const rz = -Math.sin(this.yaw);
+      this.gunRig.position.set(_lerp.x + fx * 0.12 + rx * 0.2, 1.32, _lerp.z + fz * 0.12 + rz * 0.2);
+      this.gunRig.rotation.y = this.yaw;
+    }
+    if (this.flashTimer > 0) {
+      this.flashTimer -= dt;
+      const k = Math.max(0, this.flashTimer / 0.06);
+      this.gunFlash.visible = true;
+      this.gunFlash.scale.setScalar(0.6 + k * 0.7);
+    } else {
+      this.gunFlash.visible = false;
+    }
   }
 
   takeDamage(dmg: number, point: THREE.Vector3): HitInfo {
@@ -192,6 +246,9 @@ export class EnemyAgent {
     unregisterHittable(this.collider.handle);
     this.mixer.stopAllAction();
     this.scene.remove(this.root);
+    this.scene.remove(this.gunRig);
+    for (const g of this.gunGeos) g.dispose();
+    for (const m of this.gunMats) m.dispose();
     if (!this.dead) this.world.removeRigidBody(this.body);
   }
 
@@ -255,6 +312,7 @@ export class EnemyAgent {
   }
 
   private fireAtPlayer(): void {
+    this.flashTimer = 0.06; // muzzle flash so the player can see who's shooting
     const chance = THREE.MathUtils.clamp(1 - this.vis.distance / AI.maxHitRange, 0.15, 0.85);
     if (Math.random() < chance) usePlayerStore.getState().damage(AI.fireDamage);
   }
@@ -276,6 +334,7 @@ export class EnemyAgent {
     this.run?.stop();
     this.world.removeRigidBody(this.body); // corpse no longer collides
     this.root.visible = false; // body disappears
+    this.gunRig.visible = false;
     spawnBloodStain(this.scene, this.pos.x, this.pos.z); // leave a stain
   }
 }

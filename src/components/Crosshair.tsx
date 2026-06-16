@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useWeaponStore } from "@/game/state/weaponStore";
 import { useHudStore, type HitKind } from "@/game/state/hudStore";
-import { WEAPONS } from "@/game/weapons/defs";
 
 interface Marker {
   key: number;
@@ -20,7 +19,6 @@ const CORNERS: ReadonlyArray<[number, number]> = [
 
 /** Hip-fire crosshair + hitmarker (white body / red head, larger on kill). */
 export function Crosshair() {
-  const current = useWeaponStore((s) => s.current);
   const ads = useWeaponStore((s) => s.ads);
   const hitTick = useHudStore((s) => s.hitTick);
   const [marker, setMarker] = useState<Marker | null>(null);
@@ -35,8 +33,6 @@ export function Crosshair() {
     return () => clearTimeout(timer.current);
   }, [hitTick]);
 
-  const scoped = ads && WEAPONS[current].scope;
-
   const line = {
     position: "absolute" as const,
     background: "rgba(220,235,240,0.85)",
@@ -48,8 +44,8 @@ export function Crosshair() {
 
   return (
     <div style={{ position: "fixed", left: "50%", top: "50%", width: 0, height: 0, zIndex: 40, pointerEvents: "none" }}>
-      {/* static crosshair (hidden under a sniper scope) */}
-      {!scoped && (
+      {/* static crosshair (hidden while aiming down sights) */}
+      {!ads && (
         <>
           <div style={{ ...line, width: thick, height: len, left: -thick / 2, top: -gap - len }} />
           <div style={{ ...line, width: thick, height: len, left: -thick / 2, top: gap }} />
