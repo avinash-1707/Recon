@@ -7,8 +7,10 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import type { PlayerStatsResponse } from "@recon/protocol";
 import { useSession, signIn, signUp, signOut } from "@/game/net/authClient";
 import { useNetStore } from "@/game/state/netStore";
+import { SERVER_URL } from "@/game/net/socket";
 
 // ── Design tokens (must mirror MainMenu.tsx exactly) ────────────────────────
 const ACCENT = "#4cc9f0";
@@ -181,6 +183,8 @@ export function AccountPanel() {
   const [submitting, setSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
+  // Lifetime stats for the signed-in user (null = not loaded / no matches yet).
+  const [stats, setStats] = useState<PlayerStatsResponse | null>(null);
 
   // Form fields
   const [email, setEmail] = useState("");
@@ -200,6 +204,31 @@ export function AccountPanel() {
       setHandle(session.user.name);
     }
   }, [session, handle, setHandle]);
+
+  // Fetch lifetime stats for the signed-in user (re-fetch when the user changes).
+  // 404 / network error / auth-disabled all fall through to "no matches yet".
+  const userName = session?.user.name ?? null;
+  useEffect(() => {
+    if (!userName) {
+      setStats(null);
+      return;
+    }
+    let cancelled = false;
+    setStats(null);
+    fetch(`${SERVER_URL}/api/players/${encodeURIComponent(userName)}/stats`, {
+      credentials: "include",
+    })
+      .then((r) => (r.ok ? (r.json() as Promise<PlayerStatsResponse>) : null))
+      .then((data) => {
+        if (!cancelled) setStats(data);
+      })
+      .catch(() => {
+        if (!cancelled) setStats(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [userName]);
 
   // Focus first input when panel expands
   useEffect(() => {
@@ -362,6 +391,38 @@ export function AccountPanel() {
         >
           {session.user.name.toUpperCase()}
         </span>
+        {/* Lifetime stats */}
+        <div style={{ width: 1, height: 10, background: BORDER_DIM }} />
+        {stats ? (
+          <span
+            title="kills · deaths · matches"
+            style={{
+              fontSize: "0.46rem",
+              letterSpacing: "0.16em",
+              color: MUTED,
+              textShadow: SHADOW,
+              fontVariantNumeric: "tabular-nums",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {stats.kills}
+            <span style={{ opacity: 0.5 }}>K</span> · {stats.deaths}
+            <span style={{ opacity: 0.5 }}>D</span> · {stats.matchesPlayed}
+            <span style={{ opacity: 0.5 }}>M</span>
+          </span>
+        ) : (
+          <span
+            style={{
+              fontSize: "0.44rem",
+              letterSpacing: "0.16em",
+              color: "rgba(215,226,230,0.3)",
+              textShadow: SHADOW,
+              whiteSpace: "nowrap",
+            }}
+          >
+            NO MATCHES YET
+          </span>
+        )}
         {/* Sign out */}
         <button
           className="account-signout-btn"
