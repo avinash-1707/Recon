@@ -3,6 +3,7 @@ export enum WeaponType {
   Pistol = "pistol",
   AR = "ar",
   Sniper = "sniper",
+  Knife = "knife",
 }
 
 /** Primary action state of the weapon FSM (ADS is a separate continuous axis). */
@@ -38,11 +39,14 @@ export interface WeaponDef {
   readonly tracerColor: number;
   /** Show the sniper scope overlay when aiming. */
   readonly scope: boolean;
+  /** Melee weapon: no ammo/reload/ADS, short-range swing instead of hitscan FX. */
+  readonly melee: boolean;
 }
 
-/** Slot key (1/2/3) → weapon. */
+/** Slot key (1/2/3/4) → weapon. */
 export const WEAPON_SLOTS: Readonly<Record<number, WeaponType>> = {
   1: WeaponType.Pistol,
   2: WeaponType.AR,
   3: WeaponType.Sniper,
+  4: WeaponType.Knife,
 };

@@ -17,6 +17,7 @@ export enum Action {
   Weapon1,
   Weapon2,
   Weapon3,
+  Weapon4,
 }
 
 /** Physical-key → action bindings (KeyboardEvent.code). Single source of truth. */
@@ -40,6 +41,7 @@ const KEY_BINDINGS: Readonly<Record<string, Action>> = {
   Digit1: Action.Weapon1,
   Digit2: Action.Weapon2,
   Digit3: Action.Weapon3,
+  Digit4: Action.Weapon4,
 };
 
 /** Shared input snapshot, refreshed once per frame by InputSystem. */
@@ -194,6 +196,9 @@ export class InputSystem implements GameModule {
         break;
       case Action.Weapon3:
         this.pendingWeapon = 3;
+        break;
+      case Action.Weapon4:
+        this.pendingWeapon = 4;
         break;
     }
   };

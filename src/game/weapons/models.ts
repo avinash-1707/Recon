@@ -133,6 +133,15 @@ export function buildWeapon(type: WeaponType): WeaponModel {
       muzzle.position.set(0, 0.01, -0.78);
       break;
     }
+    case WeaponType.Knife: {
+      box(group, 0.032, 0.045, 0.13, poly, 0, -0.02, 0.07); // handle
+      box(group, 0.022, 0.018, 0.022, accent, 0, -0.02, 0.005); // pommel
+      box(group, 0.085, 0.022, 0.022, accent, 0, 0, -0.01); // cross guard
+      box(group, 0.028, 0.06, 0.2, metal, 0, 0.005, -0.15); // blade
+      box(group, 0.012, 0.062, 0.05, accent, 0, 0.005, -0.26); // angled tip
+      muzzle.position.set(0, 0, -0.3);
+      break;
+    }
   }
 
   const sightOffset =

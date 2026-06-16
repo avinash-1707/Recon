@@ -19,6 +19,7 @@ export const WEAPONS: Readonly<Record<WeaponType, WeaponDef>> = {
     range: 80,
     tracerColor: 0xffd27f,
     scope: false,
+    melee: false,
   },
   [WeaponType.AR]: {
     type: WeaponType.AR,
@@ -36,6 +37,7 @@ export const WEAPONS: Readonly<Record<WeaponType, WeaponDef>> = {
     range: 150,
     tracerColor: 0xffb24c,
     scope: false,
+    melee: false,
   },
   [WeaponType.Sniper]: {
     type: WeaponType.Sniper,
@@ -53,6 +55,25 @@ export const WEAPONS: Readonly<Record<WeaponType, WeaponDef>> = {
     range: 300,
     tracerColor: 0xbfe9ff,
     scope: true,
+    melee: false,
+  },
+  [WeaponType.Knife]: {
+    type: WeaponType.Knife,
+    name: "Combat Knife",
+    damage: 100,
+    rpm: 140,
+    automatic: false,
+    magSize: 0,
+    reserveAmmo: 0,
+    reloadMs: 0,
+    recoilPitch: 0,
+    recoilYaw: 0,
+    hipFov: HIP_FOV,
+    adsFov: HIP_FOV,
+    range: 2.4,
+    tracerColor: 0xffffff,
+    scope: false,
+    melee: true,
   },
 };
 

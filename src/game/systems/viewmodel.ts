@@ -100,18 +100,22 @@ export class ViewmodelSystem implements GameModule {
     const reloadDip = Math.sin(Math.min(rl, 1) * Math.PI) * 0.12;
     const reloadRot = Math.sin(Math.min(rl, 1) * Math.PI) * 0.5;
 
-    // ADS target places the sight on the camera centre line.
-    const so = model ? model.sightOffset : HIP;
-    const adsX = -so.x;
-    const adsY = -so.y;
-    const adsZ = ADS_AIM_Z - so.z;
-
-    this.hold.position.set(
-      lerp(HIP.x, adsX, ads) + bobX,
-      lerp(HIP.y, adsY, ads) + bobY - raise * 0.25 - reloadDip,
-      lerp(HIP.z, adsZ, ads) + recoil * 0.06,
-    );
-    this.hold.rotation.set(-recoil * 0.18 - reloadRot + raise * 0.3, 0, 0);
+    const meleeW = WEAPONS[this.current].melee;
+    if (meleeW) {
+      // knife slash arc driven by the recoil pulse (1 at strike, decays)
+      const sw = recoil;
+      this.hold.position.set(HIP.x * 0.5 + bobX, HIP.y + bobY - raise * 0.25 + sw * 0.05, HIP.z * 0.7 + sw * 0.12);
+      this.hold.rotation.set(-sw * 0.8 + raise * 0.3, sw * 1.1, -sw * 0.6);
+    } else {
+      // ADS target places the sight on the camera centre line.
+      const so = model ? model.sightOffset : HIP;
+      this.hold.position.set(
+        lerp(HIP.x, -so.x, ads) + bobX,
+        lerp(HIP.y, -so.y, ads) + bobY - raise * 0.25 - reloadDip,
+        lerp(HIP.z, ADS_AIM_Z - so.z, ads) + recoil * 0.06,
+      );
+      this.hold.rotation.set(-recoil * 0.18 - reloadRot + raise * 0.3, 0, 0);
+    }
 
     // Hide a scoped weapon's model at full ADS so the scope overlay reads clean.
     const scoped = WEAPONS[this.current].scope;

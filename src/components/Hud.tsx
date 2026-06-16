@@ -41,15 +41,21 @@ function AmmoReadout() {
     <div style={{ position: "fixed", right: 26, bottom: 22, zIndex: 30, textAlign: "right", pointerEvents: "none", fontVariantNumeric: "tabular-nums" }}>
       <div style={{ fontSize: "0.62rem", letterSpacing: "0.18em", color: "rgba(220,232,236,0.7)", textShadow: SHADOW }}>
         {def.name.toUpperCase()}
-        <span style={{ marginLeft: 8, opacity: 0.55 }}>{def.automatic ? "AUTO" : "SEMI"}</span>
+        <span style={{ marginLeft: 8, opacity: 0.55 }}>{def.melee ? "MELEE" : def.automatic ? "AUTO" : "SEMI"}</span>
       </div>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "flex-end", gap: 6, lineHeight: 1, marginTop: 2 }}>
-        <span style={{ fontSize: "2.1rem", color: reloading ? WARN : low ? DANGER : "#f2f6f8", textShadow: SHADOW }}>{ammo.mag}</span>
-        <span style={{ fontSize: "0.95rem", color: "rgba(220,232,236,0.5)", textShadow: SHADOW }}>/ {ammo.reserve}</span>
-      </div>
-      <div style={{ height: 2, marginTop: 3, marginLeft: "auto", width: 96, background: "rgba(255,255,255,0.08)" }}>
-        {reloading && <div key={current} style={{ height: "100%", background: WARN, animation: `reload-fill ${def.reloadMs}ms linear forwards` }} />}
-      </div>
+      {def.melee ? (
+        <div style={{ fontSize: "1.5rem", color: "#f2f6f8", textShadow: SHADOW, lineHeight: 1.2 }}>∞</div>
+      ) : (
+        <>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "flex-end", gap: 6, lineHeight: 1, marginTop: 2 }}>
+            <span style={{ fontSize: "2.1rem", color: reloading ? WARN : low ? DANGER : "#f2f6f8", textShadow: SHADOW }}>{ammo.mag}</span>
+            <span style={{ fontSize: "0.95rem", color: "rgba(220,232,236,0.5)", textShadow: SHADOW }}>/ {ammo.reserve}</span>
+          </div>
+          <div style={{ height: 2, marginTop: 3, marginLeft: "auto", width: 96, background: "rgba(255,255,255,0.08)" }}>
+            {reloading && <div key={current} style={{ height: "100%", background: WARN, animation: `reload-fill ${def.reloadMs}ms linear forwards` }} />}
+          </div>
+        </>
+      )}
     </div>
   );
 }

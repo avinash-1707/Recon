@@ -27,6 +27,7 @@ function initialAmmo(): Record<WeaponType, AmmoState> {
     [WeaponType.Pistol]: { mag: WEAPONS.pistol.magSize, reserve: WEAPONS.pistol.reserveAmmo },
     [WeaponType.AR]: { mag: WEAPONS.ar.magSize, reserve: WEAPONS.ar.reserveAmmo },
     [WeaponType.Sniper]: { mag: WEAPONS.sniper.magSize, reserve: WEAPONS.sniper.reserveAmmo },
+    [WeaponType.Knife]: { mag: 0, reserve: 0 },
   };
 }
 

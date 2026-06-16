@@ -11,7 +11,7 @@ interface ShotProfile {
   bodyVol: number;
 }
 
-const SHOTS: Readonly<Record<WeaponType, ShotProfile>> = {
+const SHOTS: Partial<Readonly<Record<WeaponType, ShotProfile>>> = {
   [WeaponType.Pistol]: { noiseFreq: 1500, noiseQ: 0.7, dur: 0.14, bodyFreq: 150, vol: 0.5, bodyVol: 0.4 },
   [WeaponType.AR]: { noiseFreq: 1850, noiseQ: 0.8, dur: 0.11, bodyFreq: 135, vol: 0.45, bodyVol: 0.35 },
   [WeaponType.Sniper]: { noiseFreq: 850, noiseQ: 0.6, dur: 0.5, bodyFreq: 85, vol: 0.7, bodyVol: 0.6 },
@@ -58,6 +58,7 @@ export class AudioSystem implements GameModule {
     if (!this.resume()) return;
     const ctx = this.ctx!;
     const p = SHOTS[type];
+    if (!p) return;
     const t = ctx.currentTime;
 
     // noise crack
@@ -108,6 +109,27 @@ export class AudioSystem implements GameModule {
   playSwitch(): void {
     if (!this.resume()) return;
     this.click(0, 1400, 0.18, 0.04);
+  }
+
+  /** Knife swing whoosh — noise through a downward-sweeping bandpass. */
+  playMelee(): void {
+    if (!this.resume()) return;
+    const ctx = this.ctx!;
+    const t = ctx.currentTime;
+    const src = ctx.createBufferSource();
+    src.buffer = this.noise;
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.setValueAtTime(2400, t);
+    bp.frequency.exponentialRampToValueAtTime(550, t + 0.16);
+    bp.Q.value = 1.1;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.22, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+    src.connect(bp).connect(g).connect(this.master!);
+    src.start(t);
+    src.stop(t + 0.22);
   }
 
   private click(delay: number, freq: number, vol: number, len = 0.05): void {

@@ -78,32 +78,39 @@ export class WeaponSystem implements GameModule {
     }
     const def = WEAPONS[this.current];
 
-    // aim-down-sights
-    this.fsm.setAdsTarget(input.aim);
-    store.setAds(input.aim && !this.fsm.isReloading);
+    // aim-down-sights (melee has no ADS)
+    this.fsm.setAdsTarget(input.aim && !def.melee);
+    store.setAds(input.aim && !def.melee && !this.fsm.isReloading);
 
-    // manual reload (R)
-    const ammo = store.ammo[this.current];
-    if (input.reloadPressed && ammo.mag < def.magSize && ammo.reserve > 0) {
-      this.beginReload(def);
-    }
-
-    // fire (auto = held, semi = rising edge)
     const fireEdge = input.fire && !this.prevFire;
-    const wantFire = def.automatic ? input.fire : fireEdge;
     this.prevFire = input.fire;
 
-    if (wantFire && !this.fsm.isReloading) {
-      if (ammo.mag > 0 && this.fsm.canFire && this.fsm.fire()) {
-        store.consumeRound();
-        this.audio.playShot(def.type);
-        this.shoot(cam, world, def);
-        // auto-reload the instant the mag runs dry
-        const after = useWeaponStore.getState().ammo[this.current];
-        if (after.mag === 0 && after.reserve > 0) this.beginReload(def);
-      } else if (ammo.mag === 0) {
-        if (ammo.reserve > 0) this.beginReload(def);
-        else if (fireEdge) this.audio.playDryFire();
+    if (def.melee) {
+      // swing on click — no ammo, no reload
+      if (fireEdge && this.fsm.canFire && this.fsm.fire()) {
+        this.audio.playMelee();
+        this.meleeAttack(cam, world, def);
+      }
+    } else {
+      // manual reload (R)
+      const ammo = store.ammo[this.current];
+      if (input.reloadPressed && ammo.mag < def.magSize && ammo.reserve > 0) {
+        this.beginReload(def);
+      }
+
+      const wantFire = def.automatic ? input.fire : fireEdge;
+      if (wantFire && !this.fsm.isReloading) {
+        if (ammo.mag > 0 && this.fsm.canFire && this.fsm.fire()) {
+          store.consumeRound();
+          this.audio.playShot(def.type);
+          this.shoot(cam, world, def);
+          // auto-reload the instant the mag runs dry
+          const after = useWeaponStore.getState().ammo[this.current];
+          if (after.mag === 0 && after.reserve > 0) this.beginReload(def);
+        } else if (ammo.mag === 0) {
+          if (ammo.reserve > 0) this.beginReload(def);
+          else if (fireEdge) this.audio.playDryFire();
+        }
       }
     }
 
@@ -144,6 +151,17 @@ export class WeaponSystem implements GameModule {
     this.fx.spawnMuzzleFlash(from, def.tracerColor);
 
     // damage resolution → hitmarker feedback (white body / red head)
+    if (this.hit.hit && this.hit.collider) {
+      const res = reportHit(this.hit.collider.handle, def.damage, this.hit.point);
+      if (res) useHudStore.getState().registerHit(res.headshot, res.killed);
+    }
+  }
+
+  /** Short-range melee swing — hitscan only, no recoil/tracer/flash. */
+  private meleeAttack(cam: THREE.PerspectiveCamera, world: World, def: WeaponDef): void {
+    cam.getWorldPosition(_origin);
+    cam.getWorldDirection(_dir);
+    castShot(world, _origin, _dir, def.range, this.hit);
     if (this.hit.hit && this.hit.collider) {
       const res = reportHit(this.hit.collider.handle, def.damage, this.hit.point);
       if (res) useHudStore.getState().registerHit(res.headshot, res.killed);
