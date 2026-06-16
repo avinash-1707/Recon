@@ -5,9 +5,14 @@ import { persist } from "zustand/middleware";
  *  input.ts, so 1.0 = the tuned default. Clamp range lives in the UI. */
 export const SENS_MIN = 0.25;
 export const SENS_MAX = 3;
+/** Aim-down-sights multipliers can go lower (scopes want slow look). */
+export const ADS_SENS_MIN = 0.1;
+export const ADS_SENS_MAX = 2;
 const DEFAULTS = {
   mouseSensitivity: 1,
   touchSensitivity: 1,
+  adsRedDotSensitivity: 1,
+  adsScopeSensitivity: 1,
   invertY: false,
 } as const;
 
@@ -16,16 +21,23 @@ export interface SettingsState {
   mouseSensitivity: number;
   /** Touch look multiplier (1.0 = default). */
   touchSensitivity: number;
+  /** ADS look multiplier for non-scoped weapons (red dot / iron sights). */
+  adsRedDotSensitivity: number;
+  /** ADS look multiplier for scoped weapons (sniper). */
+  adsScopeSensitivity: number;
   /** Invert vertical look. */
   invertY: boolean;
 
   setMouseSensitivity: (v: number) => void;
   setTouchSensitivity: (v: number) => void;
+  setAdsRedDotSensitivity: (v: number) => void;
+  setAdsScopeSensitivity: (v: number) => void;
   setInvertY: (v: boolean) => void;
   reset: () => void;
 }
 
 const clamp = (v: number) => Math.min(SENS_MAX, Math.max(SENS_MIN, v));
+const clampAds = (v: number) => Math.min(ADS_SENS_MAX, Math.max(ADS_SENS_MIN, v));
 
 /**
  * Persisted player settings (localStorage). Read transiently in the game loop
@@ -37,6 +49,8 @@ export const useSettingsStore = create<SettingsState>()(
       ...DEFAULTS,
       setMouseSensitivity: (v) => set({ mouseSensitivity: clamp(v) }),
       setTouchSensitivity: (v) => set({ touchSensitivity: clamp(v) }),
+      setAdsRedDotSensitivity: (v) => set({ adsRedDotSensitivity: clampAds(v) }),
+      setAdsScopeSensitivity: (v) => set({ adsScopeSensitivity: clampAds(v) }),
       setInvertY: (v) => set({ invertY: v }),
       reset: () => set({ ...DEFAULTS }),
     }),

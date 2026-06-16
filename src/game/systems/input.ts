@@ -3,6 +3,8 @@ import type { GameContext, GameModule } from "@/game/core/types";
 import { SystemOrder } from "@/game/core/types";
 import { playerRuntime } from "@/game/state/runtime";
 import { useSettingsStore } from "@/game/state/settingsStore";
+import { useWeaponStore } from "@/game/state/weaponStore";
+import { WEAPONS } from "@/game/weapons/defs";
 
 /** Logical actions, decoupled from physical keys. */
 export enum Action {
@@ -213,12 +215,21 @@ export class InputSystem implements GameModule {
     input.lookDeltaY = this.accumDY;
     if (input.pointerLocked) {
       const s = useSettingsStore.getState();
+      // While aiming, swap to the ADS multiplier - separate for scoped (sniper)
+      // vs non-scoped (red dot / iron sights) so each zoom can feel right.
+      let adsMul = 1;
+      if (input.aim) {
+        const def = WEAPONS[useWeaponStore.getState().current];
+        if (!def.melee) adsMul = def.scope ? s.adsScopeSensitivity : s.adsRedDotSensitivity;
+      }
       const yawDelta =
-        this.accumDX * LOOK_SENSITIVITY * s.mouseSensitivity +
-        touchState.lookDX * TOUCH_LOOK_SENSITIVITY * s.touchSensitivity;
+        (this.accumDX * LOOK_SENSITIVITY * s.mouseSensitivity +
+          touchState.lookDX * TOUCH_LOOK_SENSITIVITY * s.touchSensitivity) *
+        adsMul;
       const pitchDelta =
-        this.accumDY * LOOK_SENSITIVITY * s.mouseSensitivity +
-        touchState.lookDY * TOUCH_LOOK_SENSITIVITY * s.touchSensitivity;
+        (this.accumDY * LOOK_SENSITIVITY * s.mouseSensitivity +
+          touchState.lookDY * TOUCH_LOOK_SENSITIVITY * s.touchSensitivity) *
+        adsMul;
       playerRuntime.yaw -= yawDelta;
       playerRuntime.pitch -= (s.invertY ? -1 : 1) * pitchDelta;
       playerRuntime.pitch = THREE.MathUtils.clamp(playerRuntime.pitch, -MAX_PITCH, MAX_PITCH);
