@@ -17,7 +17,7 @@ import { useWorldStore } from "@/game/state/worldStore";
 import { Player } from "@/game/entities/Player";
 import { WeaponRig } from "@/game/entities/WeaponRig";
 import { Enemies } from "@/game/entities/Enemies";
-import CityLevel from "@/game/levels/CityLevel";
+import TownLevel from "@/game/levels/TownLevel";
 
 function Lights() {
   return (
@@ -62,7 +62,7 @@ function World() {
     >
       <EngineRunner />
       <CoreSystems />
-      <CityLevel />
+      <TownLevel />
       <Player />
       <WeaponRig />
       <Enemies />
