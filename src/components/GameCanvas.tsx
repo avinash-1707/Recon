@@ -8,10 +8,14 @@ import * as THREE from "three";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { DevControls } from "@/components/DevControls";
 import { PlayOverlay } from "@/components/PlayOverlay";
+import { TouchControls } from "@/components/TouchControls";
+import { RotateOverlay } from "@/components/RotateOverlay";
+import { SettingsMenu } from "@/components/SettingsMenu";
 import { CoreSystems } from "@/components/CoreSystems";
 import { Crosshair } from "@/components/Crosshair";
 import { ScopeOverlay } from "@/components/ScopeOverlay";
 import { Hud } from "@/components/Hud";
+import { useIsTouch } from "@/hooks/useIsTouch";
 import { EngineProvider, EngineRunner } from "@/game/core/engineContext";
 import { useWorldStore } from "@/game/state/worldStore";
 import { Player } from "@/game/entities/Player";
@@ -84,6 +88,8 @@ function ProgressOverlay() {
 }
 
 export function GameCanvas() {
+  const isTouch = useIsTouch();
+  const debug = useWorldStore((s) => s.debugPhysics);
   return (
     <>
       <Canvas
@@ -105,14 +111,22 @@ export function GameCanvas() {
           <Preload all />
         </Suspense>
         <AdaptiveDpr pixelated />
-        <Stats />
+        {debug && <Stats />}
       </Canvas>
       <Hud />
       <Crosshair />
       <ScopeOverlay />
       <ProgressOverlay />
       <PlayOverlay />
-      <DevControls />
+      <SettingsMenu />
+      {isTouch ? (
+        <>
+          <TouchControls />
+          <RotateOverlay />
+        </>
+      ) : (
+        <DevControls />
+      )}
     </>
   );
 }
