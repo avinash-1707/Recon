@@ -42,23 +42,33 @@ export function Scoreboard() {
 
   useEffect(() => {
     if (!multiplayer) return;
+    // Don't hijack Tab while typing in a form field (settings, sign-in, etc.).
+    const inField = (e: KeyboardEvent): boolean => {
+      const t = e.target as HTMLElement | null;
+      return (
+        !!t &&
+        (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)
+      );
+    };
     const onDown = (e: KeyboardEvent) => {
-      if (e.code === "Tab") {
-        e.preventDefault();
-        setExpanded(true);
-      }
+      if (e.code !== "Tab" || inField(e)) return;
+      e.preventDefault();
+      setExpanded(true);
     };
     const onUp = (e: KeyboardEvent) => {
-      if (e.code === "Tab") {
-        e.preventDefault();
-        setExpanded(false);
-      }
+      if (e.code !== "Tab" || inField(e)) return;
+      e.preventDefault();
+      setExpanded(false);
     };
+    // If focus leaves the window with Tab held, don't get stuck expanded.
+    const onBlur = () => setExpanded(false);
     window.addEventListener("keydown", onDown);
     window.addEventListener("keyup", onUp);
+    window.addEventListener("blur", onBlur);
     return () => {
       window.removeEventListener("keydown", onDown);
       window.removeEventListener("keyup", onUp);
+      window.removeEventListener("blur", onBlur);
     };
   }, [multiplayer]);
 
