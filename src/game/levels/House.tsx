@@ -60,7 +60,7 @@ export function House({ position, rotationY = 0, storeys = 1, width = 8, depth =
   const roofW = W + 2 * EAVE;
 
   // ---- build wall segments + window openings ----
-  const { walls, decor, windows, stairs } = useMemo(() => {
+  const { walls, decor, windows } = useMemo(() => {
     const walls: Seg[] = [];
     const decor: Seg[] = [];
     const windows: Win[] = [];
@@ -106,39 +106,40 @@ export function House({ position, rotationY = 0, storeys = 1, width = 8, depth =
       }
     }
 
-    // upper floor + stairwell (2-storey)
-    const stairs: Seg[] = [];
+    // upper floor + interior staircase (2-storey)
     if (storeys === 2) {
       const innerW = W - 2 * WALL_T;
       const innerD = D - 2 * WALL_T;
-      const SW = 1.9; // stairwell width (along X, left side)
-      const SD = 3.4; // stairwell depth (along Z, back side)
+      const SW = 2.0; // stair run width (along X, left side)
+      const LANDING = 1.0; // clear floor in front of the stairs on both levels
       const fy = floorY + STOREY_H;
       const x0 = -halfW + WALL_T; // inner left edge
       const z0 = -halfD + WALL_T; // inner back edge
-      // floor: main slab (right of stairwell) + left-front strip
-      walls.push({ s: [innerW - SW, FLOOR_T, innerD], p: [x0 + SW + (innerW - SW) / 2, fy, 0], mat: MAT.woodTrim });
-      walls.push({ s: [SW, FLOOR_T, innerD - SD], p: [x0 + SW / 2, fy, z0 + SD + (innerD - SD) / 2], mat: MAT.woodTrim });
-      // staircase ramp collider + visual steps (back→front rise within stairwell)
-      const rampLen = Math.hypot(SD, STOREY_H);
-      stairs.push({
-        s: [SW, 0.3, rampLen],
-        p: [x0 + SW / 2, floorY + STOREY_H / 2, z0 + SD / 2],
-        mat: wallMat,
-      });
-      const steps = 9;
-      for (let i = 0; i < steps; i++) {
-        const f = i / steps;
-        decor.push({
-          s: [SW * 0.9, 0.16, SD / steps + 0.04],
-          p: [x0 + SW / 2, floorY + f * STOREY_H + 0.08, z0 + (i + 0.5) * (SD / steps)],
+      // stair run occupies the middle of the left bay; landings fore and aft.
+      const hz0 = z0 + LANDING; // run start (bottom landing behind it)
+      const hz1 = z0 + innerD - LANDING; // run end (top landing in front)
+      const run = hz1 - hz0;
+
+      // upper floor = footprint minus a hole only over the stair run (3 strips → landings remain)
+      walls.push({ s: [innerW - SW, FLOOR_T, innerD], p: [x0 + SW + (innerW - SW) / 2, fy, 0], mat: MAT.woodTrim }); // right of stairs
+      walls.push({ s: [SW, FLOOR_T, LANDING], p: [x0 + SW / 2, fy, z0 + LANDING / 2], mat: MAT.woodTrim }); // back landing
+      walls.push({ s: [SW, FLOOR_T, LANDING], p: [x0 + SW / 2, fy, hz1 + LANDING / 2], mat: MAT.woodTrim }); // front (top) landing
+
+      // solid staircase rising over the run; each riser < autostep height
+      const nSteps = 13;
+      const stepH = STOREY_H / nSteps; // ~0.22 < 0.5 autostep
+      const tread = run / nSteps;
+      for (let i = 0; i < nSteps; i++) {
+        const h = (i + 1) * stepH; // box from floor up to this tread
+        walls.push({
+          s: [SW * 0.92, h, tread + 0.01],
+          p: [x0 + SW / 2, floorY + h / 2, hz0 + (i + 0.5) * tread],
           mat: MAT.stoneBase,
         });
       }
-      return { walls, decor, windows, stairs };
     }
 
-    return { walls, decor, windows, stairs };
+    return { walls, decor, windows };
   }, [W, D, storeys, wallMat, floorY, halfW, halfD]);
 
   // gable end triangles
@@ -178,13 +179,6 @@ export function House({ position, rotationY = 0, storeys = 1, width = 8, depth =
           <boxGeometry args={g.s} />
         </mesh>
       ))}
-      {/* staircase visual ramp underlay */}
-      {stairs.map((g, i) => (
-        <mesh key={`s${i}`} position={g.p} rotation={[-Math.atan2(STOREY_H, 3.4), 0, 0]} material={g.mat}>
-          <boxGeometry args={g.s} />
-        </mesh>
-      ))}
-
       {/* breakable glass windows */}
       {windows.map((w, i) => (
         <BreakableWindow key={`g${i}`} position={w.pos} width={WW} height={WH} facing={w.facing} />
@@ -214,9 +208,6 @@ export function House({ position, rotationY = 0, storeys = 1, width = 8, depth =
         <CuboidCollider args={[(W + 0.4) / 2, PLINTH_H / 2, (D + 0.4) / 2]} position={[0, PLINTH_H / 2, 0]} />
         {walls.map((g, i) => (
           <CuboidCollider key={i} args={[g.s[0] / 2, g.s[1] / 2, g.s[2] / 2]} position={g.p} />
-        ))}
-        {stairs.map((g, i) => (
-          <CuboidCollider key={`sc${i}`} args={[g.s[0] / 2, g.s[1] / 2, g.s[2] / 2]} position={g.p} rotation={[-Math.atan2(STOREY_H, 3.4), 0, 0]} />
         ))}
         <CuboidCollider args={[roofW / 2, 0.08, slopeLen / 2]} position={[0, (wallTop + ridgeY) / 2, halfDe / 2]} rotation={[theta, 0, 0]} />
         <CuboidCollider args={[roofW / 2, 0.08, slopeLen / 2]} position={[0, (wallTop + ridgeY) / 2, -halfDe / 2]} rotation={[-theta, 0, 0]} />
