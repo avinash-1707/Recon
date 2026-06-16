@@ -19,6 +19,8 @@ export interface WeaponStoreState {
   applyReload: () => void;
   setReloading: (v: boolean) => void;
   setAds: (v: boolean) => void;
+  /** Resupply: top every weapon's reserve back to full. */
+  refillAmmo: () => void;
   reset: () => void;
 }
 
@@ -60,6 +62,14 @@ export const useWeaponStore = create<WeaponStoreState>((set) => ({
 
   setReloading: (v) => set((s) => (s.reloading === v ? s : { reloading: v })),
   setAds: (v) => set((s) => (s.ads === v ? s : { ads: v })),
+  refillAmmo: () =>
+    set((s) => {
+      const ammo = { ...s.ammo };
+      for (const t of Object.keys(ammo) as WeaponType[]) {
+        ammo[t] = { mag: ammo[t].mag, reserve: WEAPONS[t].reserveAmmo };
+      }
+      return { ammo };
+    }),
   reset: () =>
     set({ current: DEFAULT_WEAPON, ammo: initialAmmo(), reloading: false, ads: false }),
 }));

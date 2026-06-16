@@ -8,43 +8,13 @@ import { Building } from "@/game/levels/Building";
 import { House } from "@/game/levels/House";
 import { CoverProps } from "@/game/levels/Props";
 import { MAT, disposeLevelMaterials } from "@/game/levels/materials";
+import { PLOTS } from "@/game/levels/layout";
 import { makeGroundTexture } from "@/game/utils/proceduralTextures";
 
 const BORDER = 55; // perimeter wall radius
 const GROUND = BORDER * 2 + 24;
 const WALL_H = 5;
 const WALL_T = 1.2;
-
-// 5×5 grid; central plus (plaza + N/S/E/W street stubs) left open → 20 buildings.
-const COORD = [-44, -22, 0, 22, 44];
-const SKIP = new Set(["0,0", "0,22", "0,-22", "22,0", "-22,0"]);
-
-interface Plot {
-  x: number;
-  z: number;
-  yaw: number;
-  kind: 0 | 1 | 2;
-  alt: boolean;
-}
-
-const PLOTS: Plot[] = (() => {
-  const out: Plot[] = [];
-  let i = 0;
-  for (const x of COORD) {
-    for (const z of COORD) {
-      if (SKIP.has(`${x},${z}`)) continue;
-      out.push({
-        x,
-        z,
-        yaw: Math.atan2(-x, -z), // door faces the town centre
-        kind: (i % 3) as 0 | 1 | 2,
-        alt: i % 2 === 0,
-      });
-      i++;
-    }
-  }
-  return out;
-})();
 
 /**
  * Enclosed town map (COD/PUBG TDM feel): a grid of ~20 buildings — 1- and

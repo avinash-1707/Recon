@@ -18,6 +18,7 @@ import { Player } from "@/game/entities/Player";
 import { WeaponRig } from "@/game/entities/WeaponRig";
 import { Enemies } from "@/game/entities/Enemies";
 import { HealthPickups } from "@/game/entities/HealthPickups";
+import { AmmoPickups } from "@/game/entities/AmmoPickups";
 import TownLevel from "@/game/levels/TownLevel";
 
 function Lights() {
@@ -68,6 +69,7 @@ function World() {
       <WeaponRig />
       <Enemies />
       <HealthPickups />
+      <AmmoPickups />
     </Physics>
   );
 }

@@ -71,6 +71,20 @@ export class PlayerController implements GameModule {
   fixedUpdate(dt: number): void {
     const ctrl = this.controller;
     if (!ctrl) return;
+
+    // Consume a pending teleport (respawn) — set the body ourselves so it isn't
+    // overwritten by this step's movement.
+    if (playerRuntime.teleport) {
+      const t = playerRuntime.teleport;
+      playerRuntime.teleport = null;
+      this.body.setNextKinematicTranslation({ x: t.x, y: t.y, z: t.z });
+      playerRuntime.position.copy(t);
+      playerRuntime.prevPosition.copy(t);
+      playerRuntime.velocity.set(0, 0, 0);
+      this.grounded = false;
+      return;
+    }
+
     const vel = playerRuntime.velocity;
 
     const crouch = input.crouch;

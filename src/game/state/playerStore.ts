@@ -22,6 +22,7 @@ export interface PlayerStoreState {
   setGrounded: (v: boolean) => void;
   damage: (amount: number) => void;
   heal: (amount: number) => void;
+  revive: () => void;
   reset: () => void;
 }
 
@@ -41,5 +42,6 @@ export const usePlayerStore = create<PlayerStoreState>((set) => ({
   setGrounded: (grounded) => set((s) => (s.grounded === grounded ? s : { grounded })),
   damage: (amount) => set((s) => ({ health: Math.max(0, s.health - amount) })),
   heal: (amount) => set((s) => ({ health: Math.min(s.maxHealth, s.health + amount) })),
+  revive: () => set((s) => ({ health: s.maxHealth })),
   reset: () => set(INITIAL),
 }));

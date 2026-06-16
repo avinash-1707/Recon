@@ -2,6 +2,7 @@
 
 import { usePointerLock } from "@/hooks/usePointerLock";
 import { TEST_MODE } from "@/game/systems/input";
+import { usePlayerStore } from "@/game/state/playerStore";
 
 const CONTROLS: ReadonlyArray<[string, string]> = [
   ["WASD", "Move"],
@@ -17,7 +18,8 @@ const CONTROLS: ReadonlyArray<[string, string]> = [
 /** Click-to-play overlay. Engages pointer lock and lists the controls. */
 export function PlayOverlay() {
   const { locked, request } = usePointerLock();
-  if (locked || TEST_MODE) return null;
+  const dead = usePlayerStore((s) => s.health) <= 0;
+  if (locked || TEST_MODE || dead) return null;
 
   return (
     <div

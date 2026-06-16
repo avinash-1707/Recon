@@ -25,6 +25,8 @@ export interface PlayerRuntime {
   eyeHeight: number;
   crouching: boolean;
   sprinting: boolean;
+  /** Pending teleport target (respawn) — consumed by the controller. */
+  teleport: THREE.Vector3 | null;
 }
 
 export const playerRuntime: PlayerRuntime = {
@@ -37,6 +39,7 @@ export const playerRuntime: PlayerRuntime = {
   eyeHeight: 0.7,
   crouching: false,
   sprinting: false,
+  teleport: null,
 };
 
 /**

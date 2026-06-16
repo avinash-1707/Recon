@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePlayerStore } from "@/game/state/playerStore";
 import { useWeaponStore } from "@/game/state/weaponStore";
 import { useHudStore, AlertLevel } from "@/game/state/hudStore";
+import { respawnPlayer } from "@/game/systems/respawn";
 import { WEAPONS } from "@/game/weapons/defs";
 
 const ACCENT = "#cfe0e6";
@@ -116,11 +117,23 @@ function DamageVignette() {
 
 function GameOver() {
   const health = usePlayerStore((s) => s.health);
+
+  // Release the pointer lock on death so the cursor can click Redeploy.
+  useEffect(() => {
+    if (health <= 0 && document.pointerLockElement) document.exitPointerLock();
+  }, [health]);
+
   if (health > 0) return null;
+
+  const redeploy = () => {
+    respawnPlayer(); // teleport to a random house + refill
+    document.querySelector<HTMLCanvasElement>("#game-root canvas")?.requestPointerLock();
+  };
+
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 80, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "1rem", background: "rgba(5,7,10,0.78)", backdropFilter: "blur(3px)" }}>
       <div style={{ fontSize: "2rem", letterSpacing: "0.35em", color: DANGER }}>ELIMINATED</div>
-      <button onClick={() => location.reload()} style={{ marginTop: "0.5rem", padding: "0.5rem 1.4rem", fontSize: "0.7rem", letterSpacing: "0.2em", color: "#dfe8ec", background: "transparent", border: "1px solid rgba(220,232,236,0.5)", cursor: "pointer" }}>
+      <button onClick={redeploy} style={{ marginTop: "0.5rem", padding: "0.6rem 1.6rem", fontSize: "0.7rem", letterSpacing: "0.2em", color: "#dfe8ec", background: "rgba(76,201,240,0.08)", border: "1px solid rgba(220,232,236,0.6)", cursor: "pointer" }}>
         REDEPLOY
       </button>
     </div>
