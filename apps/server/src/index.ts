@@ -25,7 +25,7 @@ let authEnabled = false;
 if (isDbConfigured()) {
   try {
     const { getAuth, userIdFromCookie } = await import("@recon/auth");
-    getAuth(); // eager init validates config (BETTER_AUTH_SECRET etc.)
+    getAuth(); // builds now → throws (disabling auth) if prod secret is missing
     app.on(["GET", "POST"], "/api/auth/*", (c) => getAuth().handler(c.req.raw));
     resolveUserId = userIdFromCookie;
     authEnabled = true;

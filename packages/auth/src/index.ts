@@ -9,6 +9,19 @@ function clientOrigin(): string {
 const isProd = process.env.NODE_ENV === "production";
 
 function build() {
+  const secret = process.env.BETTER_AUTH_SECRET;
+  if (isProd && (!secret || secret.length < 32)) {
+    // Fail closed rather than silently signing sessions with Better Auth's
+    // guessable dev-fallback secret. The server's try/catch then disables auth.
+    throw new Error(
+      "BETTER_AUTH_SECRET must be set to a 32+ char value in production",
+    );
+  }
+  if (!secret) {
+    console.warn(
+      "[auth] BETTER_AUTH_SECRET not set — using Better Auth's insecure dev fallback",
+    );
+  }
   return betterAuth({
     appName: "Recon",
     database: drizzleAdapter(getDb(), { provider: "pg", schema: authSchema }),
@@ -19,12 +32,12 @@ function build() {
     },
     trustedOrigins: [clientOrigin()],
     advanced: {
-      // The web app and this server are different origins. In production
-      // (cross-site) cookies must be SameSite=None; Secure to be sent on the
-      // socket handshake + API calls. Dev (localhost:port) is same-site → lax.
-      defaultCookieAttributes: isProd
-        ? { sameSite: "none", secure: true }
-        : undefined,
+      // The web app and this server are different origins, and the session
+      // cookie must ride the cross-origin API calls AND the socket handshake.
+      // SameSite=None;Secure is required for that; Chrome treats http://localhost
+      // as a secure context, so it also works in dev. (useSecureCookies adds the
+      // __Secure- prefix / HTTPS enforcement — prod only.)
+      defaultCookieAttributes: { sameSite: "none", secure: true },
       useSecureCookies: isProd,
     },
   });
@@ -35,8 +48,9 @@ export type Auth = ReturnType<typeof build>;
 let instance: Auth | null = null;
 
 /**
- * Lazily build the Better Auth instance (credentials only — no social
- * providers). Lazy so importing this package never opens the DB; callers gate
+ * Build (once) and return the Better Auth instance (credentials only — no
+ * social providers). Importing this package is side-effect-free; the FIRST
+ * getAuth() call constructs the instance and opens the DB pool, so callers gate
  * on `isDbConfigured()` before invoking. Reads BETTER_AUTH_SECRET /
  * BETTER_AUTH_URL from the environment.
  */
