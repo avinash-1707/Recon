@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1781645072574,
+      "tag": "0000_nasty_old_lace",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1781647772108,
+      "tag": "0001_lucky_trish_tilby",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781649013553,
+      "tag": "0002_married_vance_astro",
+      "breakpoints": true
+    }
+  ]
+}

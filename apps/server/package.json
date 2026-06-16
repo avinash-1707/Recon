@@ -1,0 +1,28 @@
+{
+  "name": "@recon/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "smoke": "bun scripts/smoke.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.7",
+    "@recon/auth": "workspace:*",
+    "@recon/db": "workspace:*",
+    "@recon/protocol": "workspace:*",
+    "drizzle-orm": "^0.44.2",
+    "hono": "^4.6.14",
+    "socket.io": "^4.8.1",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@recon/tsconfig": "workspace:*",
+    "@types/node": "^25.9.3",
+    "socket.io-client": "^4.8.1",
+    "typescript": "^6.0.3"
+  }
+}

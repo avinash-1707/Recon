@@ -1,15 +1,19 @@
 # dependencies
-/node_modules
-/.pnp
+node_modules
+.pnp
 .pnp.*
 
-# next.js
-/.next/
-/out/
+# build outputs
+.next/
+out/
+build/
+dist/
+
+# next generated
 next-env.d.ts
 
-# production
-/build
+# turbo
+.turbo
 
 # misc
 .DS_Store
