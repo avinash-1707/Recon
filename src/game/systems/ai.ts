@@ -35,15 +35,10 @@ export class AISystem implements GameModule {
       if (!route || route.waypoints.length === 0) continue;
       const root = cloneSkinned(this.modelScene);
       root.scale.setScalar(1);
-      const agent = new EnemyAgent(
-        ctx.world,
-        ctx.rapier,
-        ctx.scene,
-        root,
-        this.clips,
-        route.waypoints,
-        spawn.startWaypoint,
-      );
+      // Randomize the start waypoint so enemies are dispersed across the map
+      // each match (no fixed ambush spots).
+      const start = Math.floor(Math.random() * route.waypoints.length);
+      const agent = new EnemyAgent(ctx.world, ctx.rapier, ctx.scene, root, this.clips, route.waypoints, start);
       this.agents.push(agent);
     }
     useHudStore.getState().setEnemyCounts(this.agents.length, this.agents.length);

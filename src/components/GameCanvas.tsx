@@ -17,6 +17,7 @@ import { useWorldStore } from "@/game/state/worldStore";
 import { Player } from "@/game/entities/Player";
 import { WeaponRig } from "@/game/entities/WeaponRig";
 import { Enemies } from "@/game/entities/Enemies";
+import { HealthPickups } from "@/game/entities/HealthPickups";
 import TownLevel from "@/game/levels/TownLevel";
 
 function Lights() {
@@ -66,6 +67,7 @@ function World() {
       <Player />
       <WeaponRig />
       <Enemies />
+      <HealthPickups />
     </Physics>
   );
 }

@@ -25,6 +25,8 @@ export const AI = {
   /** Seconds to keep searching the last known position before giving up. */
   searchTime: 6,
   waypointRadius: 1.2,
+  /** Stop within this range to shoot (enemies never fire while moving). */
+  engageRange: 13,
   /** Combat fire cadence (s) and per-shot damage. */
   fireInterval: 1.1,
   fireDamage: 9,

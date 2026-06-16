@@ -200,13 +200,13 @@ export class EnemyAgent {
     this.root.position.set(_lerp.x, 0, _lerp.z);
     this.root.rotation.y = this.yaw + FACE_OFFSET;
 
-    // hold the gun at the right hand, pointing along facing (yaw)
+    // hold the gun out in front at chest height, pointing along facing (yaw)
     if (!this.dead) {
       const fx = Math.sin(this.yaw);
       const fz = Math.cos(this.yaw);
       const rx = Math.cos(this.yaw);
       const rz = -Math.sin(this.yaw);
-      this.gunRig.position.set(_lerp.x + fx * 0.12 + rx * 0.2, 1.32, _lerp.z + fz * 0.12 + rz * 0.2);
+      this.gunRig.position.set(_lerp.x + fx * 0.34 + rx * 0.12, 1.26, _lerp.z + fz * 0.34 + rz * 0.12);
       this.gunRig.rotation.y = this.yaw;
     }
     if (this.flashTimer > 0) {
@@ -268,12 +268,16 @@ export class EnemyAgent {
     this.targetYaw = Math.atan2(px - this.pos.x, pz - this.pos.z);
     this.smoothYaw(dt);
     const d = Math.hypot(px - this.pos.x, pz - this.pos.z);
-    if (d > 12) this.moveToward(px, pz, AI.runSpeed, dt);
-    else this.speed = 0;
-    this.fireTimer -= dt;
-    if (this.fireTimer <= 0 && this.vis.visible) {
-      this.fireTimer = AI.fireInterval;
-      this.fireAtPlayer();
+    if (d > AI.engageRange) {
+      // close the distance — hold fire while moving
+      this.moveToward(px, pz, AI.runSpeed, dt);
+    } else {
+      // stationary: only ever fire when planted
+      this.fireTimer -= dt;
+      if (this.fireTimer <= 0 && this.vis.visible) {
+        this.fireTimer = AI.fireInterval;
+        this.fireAtPlayer();
+      }
     }
   }
 
