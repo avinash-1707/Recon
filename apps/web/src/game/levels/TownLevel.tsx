@@ -9,6 +9,7 @@ import { SquadHouse } from "@/game/levels/SquadHouse";
 import { OpenRoofTower } from "@/game/levels/OpenRoofTower";
 import { CoverProps } from "@/game/levels/Props";
 import { Furniture } from "@/game/levels/Furniture";
+import { CulledGroup } from "@/game/levels/CulledGroup";
 import { MAT, disposeLevelMaterials } from "@/game/levels/materials";
 import { PLOTS, SPACING, HALF, TOWN_HALF } from "@/game/levels/layout";
 
@@ -92,28 +93,33 @@ export default function TownLevel() {
       {/* perimeter wall (closed border) */}
       <PerimeterWall />
 
-      {/* buildings */}
+      {/* buildings — each gated by CulledGroup so only those within the
+          player's render distance draw (colliders stay live regardless). */}
       {PLOTS.map((p, i) => {
         const at = { position: [p.x, 0, p.z] as [number, number, number], rotationY: p.yaw };
+        let building: React.ReactNode;
         if (p.kind === 2) {
-          return <Building key={i} {...at} width={10} depth={8} height={7} />;
-        }
-        if (p.kind === 3) {
-          return <SquadHouse key={i} {...at} variant={p.variant} alt={p.alt} />;
-        }
-        if (p.kind === 4) {
-          return <OpenRoofTower key={i} {...at} variant={p.variant} alt={p.alt} />;
+          building = <Building {...at} width={10} depth={8} height={7} />;
+        } else if (p.kind === 3) {
+          building = <SquadHouse {...at} variant={p.variant} alt={p.alt} />;
+        } else if (p.kind === 4) {
+          building = <OpenRoofTower {...at} variant={p.variant} alt={p.alt} />;
+        } else {
+          building = (
+            <House
+              {...at}
+              storeys={p.kind === 1 ? 2 : 1}
+              width={p.kind === 1 ? 8 : 9}
+              depth={p.kind === 1 ? 7 : 6}
+              variant={p.variant}
+              alt={p.alt}
+            />
+          );
         }
         return (
-          <House
-            key={i}
-            {...at}
-            storeys={p.kind === 1 ? 2 : 1}
-            width={p.kind === 1 ? 8 : 9}
-            depth={p.kind === 1 ? 7 : 6}
-            variant={p.variant}
-            alt={p.alt}
-          />
+          <CulledGroup key={i} cx={p.x} cz={p.z}>
+            {building}
+          </CulledGroup>
         );
       })}
 
