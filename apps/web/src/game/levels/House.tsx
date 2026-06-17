@@ -6,6 +6,7 @@ import { RigidBody, CuboidCollider } from "@react-three/rapier";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { MAT } from "@/game/levels/materials";
 import { BreakableWindow } from "@/game/levels/BreakableWindow";
+import { Door } from "@/game/levels/Door";
 
 export interface HouseProps {
   position: [number, number, number];
@@ -143,7 +144,8 @@ export function House({
         walls.push({ s: [sideW, STOREY_H, WALL_T], p: [-(W / 2 - sideW / 2), base + STOREY_H / 2, zb], mat: wallMat });
         walls.push({ s: [sideW, STOREY_H, WALL_T], p: [W / 2 - sideW / 2, base + STOREY_H / 2, zb], mat: wallMat });
         walls.push({ s: [DOOR_W, STOREY_H - DOOR_H, WALL_T], p: [0, base + DOOR_H + (STOREY_H - DOOR_H) / 2, zb], mat: wallMat });
-        decor.push({ s: [DOOR_W, DOOR_H, 0.08], p: [0, base + DOOR_H / 2, zb], mat: MAT.doorWood });
+        // door slab is now an animated <Door> (rendered below) — only the
+        // static reveal trim stays baked into the merged geometry.
         decor.push({ s: [DOOR_W + 0.2, DOOR_H + 0.12, 0.12], p: [0, base + DOOR_H / 2, zb - WALL_T + 0.04], mat: MAT.woodTrim });
       } else {
         windowWallX(zb, base); // front upper window
@@ -314,6 +316,15 @@ export function House({
       {mergedMeshes.map((m, i) => (
         <mesh key={i} geometry={m.geo} material={m.mat} castShadow receiveShadow />
       ))}
+
+      {/* front door — auto-swings open as players approach */}
+      <Door
+        center={[0, floorY + DOOR_H / 2, halfD - WALL_T / 2]}
+        width={DOOR_W}
+        height={DOOR_H}
+        facing={1}
+        material={MAT.doorWood}
+      />
 
       {/* breakable glass windows — kept separate, manage their own state */}
       {windows.map((w, i) => (

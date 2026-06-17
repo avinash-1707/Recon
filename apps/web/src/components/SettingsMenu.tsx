@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import * as Slider from "@radix-ui/react-slider";
 import {
   useSettingsStore,
   SENS_MIN, SENS_MAX,
   ADS_SENS_MIN, ADS_SENS_MAX,
+  RENDER_DIST_MIN, RENDER_DIST_MAX,
 } from "@/game/state/settingsStore";
 import { useWorldStore } from "@/game/state/worldStore";
 import { useIsTouch } from "@/hooks/useIsTouch";
@@ -54,9 +56,10 @@ function GearIcon({ size = 22, color = FG }: { size?: number; color?: string }) 
 }
 
 // ---------------------------------------------------------------------------
-// Styled range slider (pure inline - no CSS class).
-// We inject a <style> tag once so we can style the thumb/track pseudo-elements
-// that are unreachable from inline styles.
+// Injected styles — Radix thumb pseudo-states + panel keyframes.
+// We only use a className on Slider.Thumb ("recon-thumb") and the Root
+// ("recon-slider-root") so all interactive states are reachable from CSS
+// while the rest stays inline.
 // ---------------------------------------------------------------------------
 let sliderStyleInjected = false;
 function ensureSliderStyle() {
@@ -64,60 +67,39 @@ function ensureSliderStyle() {
   sliderStyleInjected = true;
   const style = document.createElement("style");
   style.textContent = `
-    .recon-slider {
-      -webkit-appearance: none;
-      appearance: none;
-      height: 3px;
-      border-radius: 2px;
-      background: rgba(76,201,240,0.18);
+    /* Radix Slider — remove browser focus ring on root */
+    .recon-slider-root:focus-within {
       outline: none;
-      cursor: pointer;
-      width: 100%;
     }
-    .recon-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
+
+    /* Thumb */
+    .recon-thumb {
+      display: block;
       width: 14px;
       height: 14px;
       border-radius: 50%;
       background: #4cc9f0;
       box-shadow: 0 0 6px rgba(76,201,240,0.7);
       cursor: grab;
-      transition: box-shadow 120ms, transform 120ms;
+      transition: box-shadow 120ms ease, transform 120ms ease;
+      /* Prevent default focus ring — we rely on box-shadow for focus visibility */
+      outline: none;
+      border: none;
     }
-    .recon-slider::-webkit-slider-thumb:active {
+    .recon-thumb:hover {
+      box-shadow: 0 0 9px rgba(76,201,240,0.85);
+      transform: scale(1.08);
+    }
+    .recon-thumb:active {
       cursor: grabbing;
       transform: scale(1.18);
-      box-shadow: 0 0 10px rgba(76,201,240,0.9);
+      box-shadow: 0 0 12px rgba(76,201,240,0.95);
     }
-    .recon-slider::-moz-range-thumb {
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: #4cc9f0;
-      box-shadow: 0 0 6px rgba(76,201,240,0.7);
-      border: none;
-      cursor: grab;
+    .recon-thumb:focus-visible {
+      box-shadow: 0 0 0 2px rgba(76,201,240,0.5), 0 0 8px rgba(76,201,240,0.7);
     }
-    .recon-slider::-webkit-slider-runnable-track {
-      background: linear-gradient(
-        to right,
-        rgba(76,201,240,0.5) var(--track-pct, 50%),
-        rgba(76,201,240,0.12) var(--track-pct, 50%)
-      );
-      height: 3px;
-      border-radius: 2px;
-    }
-    .recon-slider::-moz-range-track {
-      background: rgba(76,201,240,0.15);
-      height: 3px;
-      border-radius: 2px;
-    }
-    .recon-slider::-moz-range-progress {
-      background: rgba(76,201,240,0.5);
-      height: 3px;
-      border-radius: 2px;
-    }
+
+    /* Panel & backdrop entrance animations */
     @keyframes recon-panel-in {
       from { opacity: 0; transform: translate(-50%, -50%) scale(0.96); }
       to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
@@ -131,24 +113,37 @@ function ensureSliderStyle() {
 }
 
 // ---------------------------------------------------------------------------
-// Sensitivity slider with live-fill track.
+// Recon Slider — Radix-based. Fill and thumb share coordinate space so they
+// always align perfectly at every value.
+//
+// Props:
+//   label     — uppercase label shown top-left
+//   value     — current numeric value
+//   onChange  — callback with new numeric value
+//   min/max   — range bounds (default SENS_MIN/MAX)
+//   step      — drag step (default 0.05)
+//   format    — function that turns value → display string (default: v.toFixed(2)+"×")
 // ---------------------------------------------------------------------------
-function SensSlider({
+function ReconSlider({
   label,
   value,
   onChange,
   min = SENS_MIN,
   max = SENS_MAX,
+  step = 0.05,
+  format,
 }: {
   label: string;
   value: number;
   onChange: (v: number) => void;
   min?: number;
   max?: number;
+  step?: number;
+  format?: (v: number) => string;
 }) {
   ensureSliderStyle();
 
-  const pct = ((value - min) / (max - min)) * 100;
+  const displayValue = format ? format(value) : `${value.toFixed(2)}×`;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -180,27 +175,53 @@ function SensSlider({
             textAlign: "right",
           }}
         >
-          {value.toFixed(2)}&times;
+          {displayValue}
         </span>
       </div>
 
-      {/* Slider */}
-      <input
-        type="range"
-        className="recon-slider"
+      {/* Radix Slider */}
+      <Slider.Root
+        className="recon-slider-root"
+        value={[value]}
+        onValueChange={(v) => onChange(v[0] ?? value)}
         min={min}
         max={max}
-        step={0.05}
-        value={value}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
-        // Live-fill the track via CSS custom property
-        style={
-          {
-            "--track-pct": `${pct.toFixed(1)}%`,
-            touchAction: "none",
-          } as React.CSSProperties
-        }
-      />
+        step={step}
+        style={{
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          userSelect: "none",
+          touchAction: "none",
+          width: "100%",
+          height: 20, // hit area
+        }}
+      >
+        {/* Track */}
+        <Slider.Track
+          style={{
+            position: "relative",
+            flexGrow: 1,
+            height: 3,
+            borderRadius: 2,
+            background: "rgba(76,201,240,0.12)",
+            overflow: "hidden",
+          }}
+        >
+          {/* Filled range — Radix sizes this to match thumb position exactly */}
+          <Slider.Range
+            style={{
+              position: "absolute",
+              height: "100%",
+              borderRadius: 2,
+              background: "rgba(76,201,240,0.55)",
+            }}
+          />
+        </Slider.Track>
+
+        {/* Thumb */}
+        <Slider.Thumb className="recon-thumb" aria-label={label} />
+      </Slider.Root>
 
       {/* Min/max labels */}
       <div
@@ -213,8 +234,8 @@ function SensSlider({
           marginTop: -4,
         }}
       >
-        <span>{min.toFixed(2)}</span>
-        <span>{max.toFixed(2)}</span>
+        <span>{format ? format(min) : min.toFixed(2)}</span>
+        <span>{format ? format(max) : max.toFixed(2)}</span>
       </div>
     </div>
   );
@@ -316,6 +337,26 @@ function Divider() {
 }
 
 // ---------------------------------------------------------------------------
+// Section heading — small uppercase label, used for CONTROLS / GRAPHICS groups.
+// ---------------------------------------------------------------------------
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      style={{
+        display: "block",
+        fontSize: "0.48rem",
+        letterSpacing: "0.35em",
+        color: "rgba(76,201,240,0.45)",
+        textShadow: SHADOW,
+        marginBottom: -4,
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main component.
 // ---------------------------------------------------------------------------
 export function SettingsMenu() {
@@ -324,17 +365,19 @@ export function SettingsMenu() {
   const isTouch = useIsTouch();
 
   // Settings store selectors (stable references via Zustand's slice pattern).
-  const mouseSensitivity    = useSettingsStore((s) => s.mouseSensitivity);
-  const touchSensitivity    = useSettingsStore((s) => s.touchSensitivity);
-  const invertY             = useSettingsStore((s) => s.invertY);
+  const mouseSensitivity        = useSettingsStore((s) => s.mouseSensitivity);
+  const touchSensitivity        = useSettingsStore((s) => s.touchSensitivity);
+  const invertY                 = useSettingsStore((s) => s.invertY);
   const adsRedDotSensitivity    = useSettingsStore((s) => s.adsRedDotSensitivity);
   const adsScopeSensitivity     = useSettingsStore((s) => s.adsScopeSensitivity);
-  const setMouseSensitivity = useSettingsStore((s) => s.setMouseSensitivity);
-  const setTouchSensitivity = useSettingsStore((s) => s.setTouchSensitivity);
-  const setInvertY          = useSettingsStore((s) => s.setInvertY);
+  const renderDistance          = useSettingsStore((s) => s.renderDistance);
+  const setMouseSensitivity     = useSettingsStore((s) => s.setMouseSensitivity);
+  const setTouchSensitivity     = useSettingsStore((s) => s.setTouchSensitivity);
+  const setInvertY              = useSettingsStore((s) => s.setInvertY);
   const setAdsRedDotSensitivity = useSettingsStore((s) => s.setAdsRedDotSensitivity);
   const setAdsScopeSensitivity  = useSettingsStore((s) => s.setAdsScopeSensitivity);
-  const reset               = useSettingsStore((s) => s.reset);
+  const setRenderDistance       = useSettingsStore((s) => s.setRenderDistance);
+  const reset                   = useSettingsStore((s) => s.reset);
 
   // ------------------------------------------------------------------
   // Open: pause sim + release pointer lock.
@@ -518,15 +561,18 @@ export function SettingsMenu() {
                 overflowY: "auto",
               }}
             >
+              {/* CONTROLS group */}
+              <SectionLabel>CONTROLS</SectionLabel>
+
               {/* Sensitivity slider — device-gated */}
               {isTouch ? (
-                <SensSlider
+                <ReconSlider
                   label="LOOK SENSITIVITY"
                   value={touchSensitivity}
                   onChange={setTouchSensitivity}
                 />
               ) : (
-                <SensSlider
+                <ReconSlider
                   label="MOUSE SENSITIVITY"
                   value={mouseSensitivity}
                   onChange={setMouseSensitivity}
@@ -536,14 +582,14 @@ export function SettingsMenu() {
               <Divider />
 
               {/* ADS sensitivity sliders — shown on both desktop and mobile */}
-              <SensSlider
+              <ReconSlider
                 label="RED DOT SENS"
                 value={adsRedDotSensitivity}
                 onChange={setAdsRedDotSensitivity}
                 min={ADS_SENS_MIN}
                 max={ADS_SENS_MAX}
               />
-              <SensSlider
+              <ReconSlider
                 label="SNIPER SCOPE SENS"
                 value={adsScopeSensitivity}
                 onChange={setAdsScopeSensitivity}
@@ -558,6 +604,21 @@ export function SettingsMenu() {
                 label="INVERT Y AXIS"
                 checked={invertY}
                 onChange={setInvertY}
+              />
+
+              <Divider />
+
+              {/* GRAPHICS group */}
+              <SectionLabel>GRAPHICS</SectionLabel>
+
+              <ReconSlider
+                label="RENDER DISTANCE"
+                value={renderDistance}
+                onChange={setRenderDistance}
+                min={RENDER_DIST_MIN}
+                max={RENDER_DIST_MAX}
+                step={1}
+                format={(v) => `${Math.round(v)}m`}
               />
             </div>
 

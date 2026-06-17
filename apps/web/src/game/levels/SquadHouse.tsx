@@ -6,6 +6,7 @@ import { RigidBody, CuboidCollider } from "@react-three/rapier";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { MAT } from "@/game/levels/materials";
 import { BreakableWindow } from "@/game/levels/BreakableWindow";
+import { Door } from "@/game/levels/Door";
 
 export interface SquadHouseProps {
   position: [number, number, number];
@@ -170,8 +171,7 @@ export function SquadHouse({
         // Col E: x=+3.25 to +6, w=2.75
         walls.push({ s: [2.75, STOREY_H, WALL_T], p: [4.625, base + STOREY_H / 2, ZF], mat: wallMat });
 
-        // door surround decor
-        decor.push({ s: [DOOR_W, DOOR_H, 0.08], p: [-3.0, base + DOOR_H / 2, ZF], mat: MAT.doorWood });
+        // door surround decor — slab is now an animated <Door> below, trim stays baked
         decor.push({ s: [DOOR_W + 0.2, DOOR_H + 0.12, 0.12], p: [-3.0, base + DOOR_H / 2, ZF - WALL_T + 0.04], mat: MAT.woodTrim });
       } else {
         // Upper floor front: window @ x=+2.5, full wall left of it
@@ -200,7 +200,6 @@ export function SquadHouse({
         walls.push({ s: [3.45, STOREY_H, WALL_T], p: [4.275, base + STOREY_H / 2, ZB], mat: wallMat });
 
         // rear door surround
-        decor.push({ s: [DOOR_W, DOOR_H, 0.08], p: [2.0, base + DOOR_H / 2, ZB], mat: MAT.doorWood });
         decor.push({ s: [DOOR_W + 0.2, DOOR_H + 0.12, 0.12], p: [2.0, base + DOOR_H / 2, ZB + WALL_T - 0.04], mat: MAT.woodTrim });
       } else {
         // Upper floor back: window @ x=-2.5, door @ x=+2.0 for roof stair access
@@ -216,7 +215,6 @@ export function SquadHouse({
         walls.push({ s: [3.45, STOREY_H, WALL_T], p: [4.275, base + STOREY_H / 2, ZB], mat: wallMat });
 
         // upper back door surround
-        decor.push({ s: [DOOR_W, DOOR_H, 0.08], p: [2.0, base + DOOR_H / 2, ZB], mat: MAT.doorWood });
         decor.push({ s: [DOOR_W + 0.2, DOOR_H + 0.12, 0.12], p: [2.0, base + DOOR_H / 2, ZB + WALL_T - 0.04], mat: MAT.woodTrim });
       }
 
@@ -461,6 +459,11 @@ export function SquadHouse({
       {mergedMeshes.map((m, i) => (
         <mesh key={i} geometry={m.geo} material={m.mat} castShadow receiveShadow />
       ))}
+
+      {/* auto-swinging doors: front, rear, and upper-rear (roof-stair access) */}
+      <Door center={[-3.0, floorY + DOOR_H / 2, ZF]} width={DOOR_W} height={DOOR_H} facing={1} material={MAT.doorWood} />
+      <Door center={[2.0, floorY + DOOR_H / 2, ZB]} width={DOOR_W} height={DOOR_H} facing={-1} material={MAT.doorWood} />
+      <Door center={[2.0, floorY + STOREY_H + DOOR_H / 2, ZB]} width={DOOR_W} height={DOOR_H} facing={-1} material={MAT.doorWood} />
 
       {/* breakable glass windows — kept separate, manage their own state */}
       {windows.map((w, i) => (
