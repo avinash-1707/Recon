@@ -15,44 +15,48 @@ function canvas(size: number): { c: HTMLCanvasElement; ctx: CanvasRenderingConte
   return { c, ctx };
 }
 
-/** Tarmac-ish ground: dark base + speckle noise + faint grid seams. */
-export function makeGroundTexture(): THREE.Texture {
-  const made = canvas(512);
+/** Grass: green base + multi-tone speckle + sparse blade flecks. */
+export function makeGrassTexture(): THREE.Texture {
+  const made = canvas(256);
   if (!made) return new THREE.Texture();
   const { c, ctx } = made;
-  const s = 512;
-
-  ctx.fillStyle = "#23271f";
+  const s = 256;
+  ctx.fillStyle = "#4e6b3c";
   ctx.fillRect(0, 0, s, s);
-
-  // speckle
-  for (let i = 0; i < 4000; i++) {
-    const x = Math.random() * s;
-    const y = Math.random() * s;
+  for (let i = 0; i < 9000; i++) {
     const v = Math.random();
-    ctx.fillStyle = v > 0.5 ? `rgba(255,255,255,${v * 0.05})` : `rgba(0,0,0,${v * 0.12})`;
-    ctx.fillRect(x, y, 2, 2);
+    if (v > 0.5) {
+      const g = 70 + Math.floor(v * 70);
+      ctx.fillStyle = `rgba(${g - 35},${g},${g - 45},0.5)`;
+    } else {
+      ctx.fillStyle = `rgba(18,${28 + Math.floor(v * 34)},14,0.5)`;
+    }
+    ctx.fillRect(Math.random() * s, Math.random() * s, 2, 3);
   }
-
-  // grid seams
-  ctx.strokeStyle = "rgba(0,0,0,0.30)";
-  ctx.lineWidth = 3;
-  const div = 4;
-  const step = s / div;
-  for (let i = 0; i <= div; i++) {
-    ctx.beginPath();
-    ctx.moveTo(i * step, 0);
-    ctx.lineTo(i * step, s);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(0, i * step);
-    ctx.lineTo(s, i * step);
-    ctx.stroke();
-  }
-
   const tex = new THREE.CanvasTexture(c);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(24, 24);
+  tex.repeat.set(48, 48);
+  tex.anisotropy = 4;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+/** Asphalt: dark grey base + grit speckle (roads). */
+export function makeAsphaltTexture(): THREE.Texture {
+  const made = canvas(256);
+  if (!made) return new THREE.Texture();
+  const { c, ctx } = made;
+  const s = 256;
+  ctx.fillStyle = "#2b2e31";
+  ctx.fillRect(0, 0, s, s);
+  for (let i = 0; i < 6000; i++) {
+    const v = Math.random();
+    ctx.fillStyle = v > 0.5 ? `rgba(255,255,255,${v * 0.05})` : `rgba(0,0,0,${v * 0.18})`;
+    ctx.fillRect(Math.random() * s, Math.random() * s, 2, 2);
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(8, 8);
   tex.anisotropy = 4;
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;

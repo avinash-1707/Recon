@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { Ray } from "@dimforge/rapier3d-compat";
 import type {
   Collider,
   KinematicCharacterController,
@@ -10,6 +11,7 @@ import { SystemOrder } from "@/game/core/types";
 import { input } from "@/game/systems/input";
 import { playerRuntime, playerPhysics } from "@/game/state/runtime";
 import { Stance, usePlayerStore } from "@/game/state/playerStore";
+import { findVaultTarget } from "@/game/levels/windowRegistry";
 
 // Movement tuning (m/s, m/s²-ish smoothing factors).
 const WALK_SPEED = 4.2;
@@ -23,12 +25,18 @@ const STAND_EYE = 0.7; // eye offset above capsule center
 const CROUCH_EYE = 0.15;
 const EYE_LERP = 12;
 
+// Window vault (rough scripted hop across a window opening, both directions).
+const VAULT_DUR = 0.33; // seconds
+const VAULT_ARC = 0.35; // peak rise over the sill
+const VAULT_EXIT = 0.95; // land this far past the opening on the far side
+
 const UP = new THREE.Vector3(0, 1, 0);
 const tmpFwd = new THREE.Vector3();
 const tmpRight = new THREE.Vector3();
 const tmpMove = new THREE.Vector3();
 const tmpDesired = new THREE.Vector3();
 const tmpNext = new THREE.Vector3();
+const _vaultRay = new Ray({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 });
 
 /**
  * Kinematic FPS character controller built on Rapier's
@@ -42,6 +50,10 @@ export class PlayerController implements GameModule {
 
   private controller: KinematicCharacterController | null = null;
   private grounded = false;
+  private vaulting = false;
+  private vaultT = 0;
+  private readonly vaultStart = new THREE.Vector3();
+  private readonly vaultEnd = new THREE.Vector3();
 
   constructor(
     private readonly world: World,
@@ -82,6 +94,28 @@ export class PlayerController implements GameModule {
       playerRuntime.prevPosition.copy(t);
       playerRuntime.velocity.set(0, 0, 0);
       this.grounded = false;
+      this.vaulting = false; // a respawn mid-vault must not drag us back
+      this.vaultT = 0;
+      return;
+    }
+
+    // Window vault in progress — scripted translation across the opening,
+    // bypassing normal movement/collision (rough but functional).
+    if (this.vaulting) {
+      this.vaultT += dt;
+      const u = Math.min(1, this.vaultT / VAULT_DUR);
+      tmpNext.lerpVectors(this.vaultStart, this.vaultEnd, u);
+      tmpNext.y += VAULT_ARC * Math.sin(Math.PI * u);
+      this.body.setNextKinematicTranslation({ x: tmpNext.x, y: tmpNext.y, z: tmpNext.z });
+      playerRuntime.prevPosition.copy(playerRuntime.position);
+      playerRuntime.position.copy(tmpNext);
+      playerRuntime.velocity.set(0, 0, 0);
+      playerRuntime.launch = 0; // don't let a jump-pad launch latch through the vault
+      playerRuntime.grounded = false;
+      if (u >= 1) {
+        this.vaulting = false;
+        this.grounded = false;
+      }
       return;
     }
 
@@ -113,6 +147,8 @@ export class PlayerController implements GameModule {
     if (this.grounded && vel.y < 0) vel.y = 0;
     const wantJump = input.jumpQueued;
     input.jumpQueued = false;
+    // Vault takes priority over jump when standing at a window you face.
+    if (wantJump && this.tryStartVault()) return;
     if (this.grounded && wantJump) vel.y = JUMP_SPEED;
     const launch = playerRuntime.launch;
     playerRuntime.launch = 0;
@@ -146,6 +182,52 @@ export class PlayerController implements GameModule {
 
   update(): void {
     // No variable-rate work - motion is fully fixed-step.
+  }
+
+  /** If the player is at a window they're facing, begin a vault across it.
+   *  Works both ways (outside→in and inside→out) — it just moves to the far
+   *  side of the opening's plane. Shatters intact glass first. */
+  private tryStartVault(): boolean {
+    if (this.vaulting) return false;
+    const target = findVaultTarget(playerRuntime.position, tmpFwd);
+    if (!target) return false;
+    const o = target.opening;
+
+    // Exit direction = the far side of the wall plane.
+    const ex = -target.side * o.normal.x;
+    const ey = -target.side * o.normal.y;
+    const ez = -target.side * o.normal.z;
+
+    // Abort if the far side is blocked (don't clip into a solid wall). Cast from
+    // just past the opening centre along the exit dir, excluding the player.
+    _vaultRay.origin.x = o.center.x + ex * 0.12;
+    _vaultRay.origin.y = o.center.y + ey * 0.12;
+    _vaultRay.origin.z = o.center.z + ez * 0.12;
+    _vaultRay.dir.x = ex;
+    _vaultRay.dir.y = ey;
+    _vaultRay.dir.z = ez;
+    const blocked = this.world.castRay(
+      _vaultRay,
+      VAULT_EXIT + 0.4,
+      true,
+      undefined,
+      undefined,
+      undefined,
+      playerPhysics.body ?? undefined,
+    );
+    if (blocked) return false;
+
+    if (!o.isBroken()) o.shatter();
+    this.vaultStart.copy(playerRuntime.position);
+    this.vaultEnd.set(
+      o.center.x + ex * VAULT_EXIT,
+      playerRuntime.position.y, // keep height; arc clears the sill, gravity settles
+      o.center.z + ez * VAULT_EXIT,
+    );
+    this.vaulting = true;
+    this.vaultT = 0;
+    playerRuntime.velocity.set(0, 0, 0);
+    return true;
   }
 
   dispose(): void {
