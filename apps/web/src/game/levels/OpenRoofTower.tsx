@@ -6,6 +6,7 @@ import { RigidBody, CuboidCollider } from "@react-three/rapier";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { MAT } from "@/game/levels/materials";
 import { BreakableWindow } from "@/game/levels/BreakableWindow";
+import { Door } from "@/game/levels/Door";
 
 export interface OpenRoofTowerProps {
   position: [number, number, number];
@@ -151,8 +152,7 @@ export function OpenRoofTower({
         walls.push({ s: [sideW, STOREY_H, WALL_T], p: [+(halfW - sideW / 2), base + STOREY_H / 2, zb], mat: MAT.concrete });
         // header above door
         walls.push({ s: [DOOR_W, STOREY_H - DOOR_H, WALL_T], p: [0, base + DOOR_H + (STOREY_H - DOOR_H) / 2, zb], mat: MAT.concrete });
-        // door visual (decorative — no collider)
-        decor.push({ s: [DOOR_W, DOOR_H, 0.08], p: [0, base + DOOR_H / 2, zb], mat: MAT.doorWood });
+        // door slab is now an animated <Door> below; only the trim stays baked
         decor.push({ s: [DOOR_W + 0.18, DOOR_H + 0.1, 0.1], p: [0, base + DOOR_H / 2, zb - WALL_T + 0.04], mat: MAT.woodTrim });
       } else {
         // Floors 2 and 3: centred window
@@ -399,6 +399,15 @@ export function OpenRoofTower({
       {mergedMeshes.map((m, i) => (
         <mesh key={i} geometry={m.geo} material={m.mat} castShadow receiveShadow />
       ))}
+
+      {/* front door — auto-swings open as players approach */}
+      <Door
+        center={[0, floorY + DOOR_H / 2, zb]}
+        width={DOOR_W}
+        height={DOOR_H}
+        facing={1}
+        material={MAT.doorWood}
+      />
 
       {/* ── Breakable glass windows ── */}
       {windows.map((w, i) => (
