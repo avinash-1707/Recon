@@ -8,6 +8,7 @@ import { House } from "@/game/levels/House";
 import { SquadHouse } from "@/game/levels/SquadHouse";
 import { OpenRoofTower } from "@/game/levels/OpenRoofTower";
 import { CoverProps } from "@/game/levels/Props";
+import { Furniture } from "@/game/levels/Furniture";
 import { MAT, disposeLevelMaterials } from "@/game/levels/materials";
 import { PLOTS, SPACING, HALF, TOWN_HALF } from "@/game/levels/layout";
 
@@ -117,6 +118,7 @@ export default function TownLevel() {
       })}
 
       <CoverProps />
+      <Furniture />
     </>
   );
 }

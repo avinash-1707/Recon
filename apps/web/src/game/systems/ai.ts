@@ -4,6 +4,7 @@ import type { GameContext, GameModule } from "@/game/core/types";
 import { SystemOrder } from "@/game/core/types";
 import { EnemyAgent } from "@/game/ai/enemyAgent";
 import { EnemyState } from "@/game/ai/fsm";
+import { archetypeFor } from "@/game/ai/archetypes";
 import { PATROL_ROUTES, ENEMY_SPAWNS } from "@/game/levels/spawns";
 import { AlertLevel, useHudStore } from "@/game/state/hudStore";
 import { disposeDecals } from "@/game/utils/decals";
@@ -30,15 +31,32 @@ export class AISystem implements GameModule {
 
   init(ctx: GameContext): void {
     const routes = new Map(PATROL_ROUTES.map((r) => [r.id, r]));
+    let n = 0;
     for (const spawn of ENEMY_SPAWNS) {
       const route = routes.get(spawn.routeId);
       if (!route || route.waypoints.length === 0) continue;
       const root = cloneSkinned(this.modelScene);
       root.scale.setScalar(1);
-      // Randomize the start waypoint so enemies are dispersed across the map
-      // each match (no fixed ambush spots).
-      const start = Math.floor(Math.random() * route.waypoints.length);
-      const agent = new EnemyAgent(ctx.world, ctx.rapier, ctx.scene, root, this.clips, route.waypoints, start);
+      // Deterministic, distinct start waypoint + a small ring offset so enemies
+      // sharing a route never spawn or patrol on top of each other (fixes the
+      // "two bots in one body" merge). Archetype varies per spawn.
+      const k = spawn.startWaypoint;
+      const ang = k * 2.39996; // golden-angle spread
+      const offX = Math.cos(ang) * 1.6;
+      const offZ = Math.sin(ang) * 1.6;
+      const config = archetypeFor(n++);
+      const agent = new EnemyAgent(
+        ctx.world,
+        ctx.rapier,
+        ctx.scene,
+        root,
+        this.clips,
+        route.waypoints,
+        k,
+        config,
+        offX,
+        offZ,
+      );
       this.agents.push(agent);
     }
     useHudStore.getState().setEnemyCounts(this.agents.length, this.agents.length);
