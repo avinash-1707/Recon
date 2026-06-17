@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { World, RigidBody, Collider } from "@dimforge/rapier3d-compat";
 import type { RapierAPI } from "@/game/core/types";
 import { AI, EnemyState } from "@/game/ai/fsm";
+import type { EnemyConfig } from "@/game/ai/archetypes";
 import { checkVision, type VisionResult } from "@/game/ai/vision";
 import { playerRuntime } from "@/game/state/runtime";
 import { usePlayerStore } from "@/game/state/playerStore";
@@ -14,7 +15,6 @@ const CENTER_Y = 0.94; // capsule center above ground
 const HEAD_Y = 1.45; // hits above this (world) count as headshots
 const HEADSHOT_MULT = 2.6;
 const FACE_OFFSET = Math.PI; // Soldier.glb faces -Z; rotate to align with motion
-const FOV_COS = Math.cos(THREE.MathUtils.degToRad(AI.visionFovDeg / 2));
 
 const _target = new THREE.Vector3();
 const _lerp = new THREE.Vector3();
@@ -38,7 +38,7 @@ function pickAction(
 export class EnemyAgent {
   state: EnemyState = EnemyState.Patrol;
   detection = 0;
-  health = AI.health;
+  health: number = AI.health;
   readonly collider: Collider;
 
   private readonly body: RigidBody;
@@ -63,6 +63,11 @@ export class EnemyAgent {
   private fireTimer = 0;
   private scanTimer = 0;
   private dead = false;
+  private readonly cfg: EnemyConfig;
+  private readonly offsetX: number;
+  private readonly offsetZ: number;
+  private readonly fovCos: number;
+  private readonly tintMats: THREE.Material[] = [];
   private readonly vis: VisionResult = { visible: false, distance: 0 };
   private readonly eye = new THREE.Vector3();
   private readonly forward = new THREE.Vector3();
@@ -81,18 +86,30 @@ export class EnemyAgent {
     clips: THREE.AnimationClip[],
     route: THREE.Vector3[],
     startWaypoint: number,
+    config: EnemyConfig,
+    offsetX = 0,
+    offsetZ = 0,
   ) {
     this.world = world;
     this.scene = scene;
     this.root = root;
     this.route = route;
     this.wp = startWaypoint % route.length;
+    this.cfg = config;
+    this.offsetX = offsetX;
+    this.offsetZ = offsetZ;
+    this.fovCos = Math.cos(THREE.MathUtils.degToRad(config.visionFovDeg / 2));
+    this.health = config.health;
 
     const spawn = route[this.wp];
-    this.pos.set(spawn.x, CENTER_Y, spawn.z);
+    this.pos.set(spawn.x + offsetX, CENTER_Y, spawn.z + offsetZ);
     this.prevPos.copy(this.pos);
 
-    const desc = rapier.RigidBodyDesc.kinematicPositionBased().setTranslation(spawn.x, CENTER_Y, spawn.z);
+    const desc = rapier.RigidBodyDesc.kinematicPositionBased().setTranslation(
+      spawn.x + offsetX,
+      CENTER_Y,
+      spawn.z + offsetZ,
+    );
     this.body = world.createRigidBody(desc);
     this.collider = world.createCollider(rapier.ColliderDesc.capsule(HALF, RADIUS), this.body);
     registerHittable(this.collider.handle, (dmg, point) => this.takeDamage(dmg, point));
@@ -101,6 +118,7 @@ export class EnemyAgent {
     root.traverse((o) => {
       o.castShadow = true;
     });
+    this.tintModel(config.tint);
 
     this.mixer = new THREE.AnimationMixer(root);
     this.idle = pickAction(this.mixer, clips, "idle", 0);
@@ -149,11 +167,11 @@ export class EnemyAgent {
     this.eye.set(this.pos.x, AI.eyeHeight, this.pos.z);
     this.forward.set(Math.sin(this.yaw), 0, Math.cos(this.yaw));
     _target.set(playerRuntime.position.x, playerRuntime.position.y + 0.2, playerRuntime.position.z);
-    checkVision(this.world, this.eye, this.forward, _target, FOV_COS, AI.visionRange, this.body, this.vis);
+    checkVision(this.world, this.eye, this.forward, _target, this.fovCos, this.cfg.visionRange, this.body, this.vis);
 
     if (this.vis.visible) {
-      const closeness = 1 - Math.min(1, this.vis.distance / AI.visionRange);
-      this.detection = Math.min(1.2, this.detection + AI.detectionGain * (0.4 + 0.6 * closeness) * dt);
+      const closeness = 1 - Math.min(1, this.vis.distance / this.cfg.visionRange);
+      this.detection = Math.min(1.2, this.detection + this.cfg.detectionGain * (0.4 + 0.6 * closeness) * dt);
       this.lastKnown.copy(playerRuntime.position);
     } else {
       this.detection = Math.max(0, this.detection - AI.detectionDecay * dt);
@@ -242,6 +260,27 @@ export class EnemyAgent {
     return this.pos;
   }
 
+  /** Blend a tint into the (cloned) soldier materials so archetypes read at a
+   *  glance. Clones each material so sibling enemies aren't affected; tracked
+   *  for disposal. */
+  private tintModel(color: number): void {
+    const c = new THREE.Color(color);
+    this.root.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      const tintOne = (m: THREE.Material): THREE.Material => {
+        const cloned = m.clone();
+        const std = cloned as THREE.MeshStandardMaterial;
+        if (std.color) std.color.lerp(c, 0.55);
+        this.tintMats.push(cloned);
+        return cloned;
+      };
+      mesh.material = Array.isArray(mesh.material)
+        ? mesh.material.map(tintOne)
+        : tintOne(mesh.material);
+    });
+  }
+
   dispose(): void {
     unregisterHittable(this.collider.handle);
     this.mixer.stopAllAction();
@@ -249,6 +288,7 @@ export class EnemyAgent {
     this.scene.remove(this.gunRig);
     for (const g of this.gunGeos) g.dispose();
     for (const m of this.gunMats) m.dispose();
+    for (const m of this.tintMats) m.dispose();
     if (!this.dead) this.world.removeRigidBody(this.body);
   }
 
@@ -256,8 +296,11 @@ export class EnemyAgent {
 
   private patrol(dt: number): void {
     const wp = this.route[this.wp];
-    this.moveToward(wp.x, wp.z, AI.walkSpeed, dt);
-    if (Math.hypot(wp.x - this.pos.x, wp.z - this.pos.z) < AI.waypointRadius) {
+    // Offset target keeps same-route agents walking parallel (never merging).
+    const tx = wp.x + this.offsetX;
+    const tz = wp.z + this.offsetZ;
+    this.moveToward(tx, tz, this.cfg.walkSpeed, dt);
+    if (Math.hypot(tx - this.pos.x, tz - this.pos.z) < AI.waypointRadius) {
       this.wp = (this.wp + 1) % this.route.length;
     }
   }
@@ -268,14 +311,14 @@ export class EnemyAgent {
     this.targetYaw = Math.atan2(px - this.pos.x, pz - this.pos.z);
     this.smoothYaw(dt);
     const d = Math.hypot(px - this.pos.x, pz - this.pos.z);
-    if (d > AI.engageRange) {
+    if (d > this.cfg.engageRange) {
       // close the distance - hold fire while moving
-      this.moveToward(px, pz, AI.runSpeed, dt);
+      this.moveToward(px, pz, this.cfg.runSpeed, dt);
     } else {
       // stationary: only ever fire when planted
       this.fireTimer -= dt;
       if (this.fireTimer <= 0 && this.vis.visible) {
-        this.fireTimer = AI.fireInterval;
+        this.fireTimer = this.cfg.fireInterval;
         this.fireAtPlayer();
       }
     }
@@ -284,7 +327,7 @@ export class EnemyAgent {
   private search(dt: number): void {
     const d = Math.hypot(this.lastKnown.x - this.pos.x, this.lastKnown.z - this.pos.z);
     if (d > AI.waypointRadius) {
-      this.moveToward(this.lastKnown.x, this.lastKnown.z, AI.walkSpeed, dt);
+      this.moveToward(this.lastKnown.x, this.lastKnown.z, this.cfg.walkSpeed, dt);
     } else {
       // arrived - scan around
       this.scanTimer += dt;
@@ -317,8 +360,8 @@ export class EnemyAgent {
 
   private fireAtPlayer(): void {
     this.flashTimer = 0.06; // muzzle flash so the player can see who's shooting
-    const chance = THREE.MathUtils.clamp(1 - this.vis.distance / AI.maxHitRange, 0.15, 0.85);
-    if (Math.random() < chance) usePlayerStore.getState().damage(AI.fireDamage);
+    const chance = THREE.MathUtils.clamp(1 - this.vis.distance / this.cfg.maxHitRange, 0.15, 0.85);
+    if (Math.random() < chance) usePlayerStore.getState().damage(this.cfg.fireDamage);
   }
 
   private setAction(next: THREE.AnimationAction | null): void {

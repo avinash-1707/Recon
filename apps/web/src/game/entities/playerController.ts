@@ -30,6 +30,10 @@ const VAULT_DUR = 0.33; // seconds
 const VAULT_ARC = 0.35; // peak rise over the sill
 const VAULT_EXIT = 0.95; // land this far past the opening on the far side
 
+// Out-of-bounds: fall through the world or leave the arena → death.
+const KILL_Y = -8;
+const BOUND_XZ = 90; // beyond the perimeter wall (±80) by a margin
+
 const UP = new THREE.Vector3(0, 1, 0);
 const tmpFwd = new THREE.Vector3();
 const tmpRight = new THREE.Vector3();
@@ -172,6 +176,16 @@ export class PlayerController implements GameModule {
     playerRuntime.prevPosition.copy(playerRuntime.position);
     playerRuntime.position.copy(tmpNext);
     playerRuntime.grounded = this.grounded;
+
+    // Out of bounds (fell through the floor / left the arena) → die. Routes
+    // through the normal death flow (GameOver in single, respawn beat in MP).
+    if (
+      tmpNext.y < KILL_Y ||
+      Math.abs(tmpNext.x) > BOUND_XZ ||
+      Math.abs(tmpNext.z) > BOUND_XZ
+    ) {
+      usePlayerStore.getState().damage(9999);
+    }
 
     // Discrete HUD state - setters no-op when unchanged (no needless re-render).
     const store = usePlayerStore.getState();
